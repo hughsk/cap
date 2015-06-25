@@ -141,7 +141,7 @@ function render () {
 
   mat4.perspective(proj, Math.PI / 4, width / height, 0.1, 1000)
 
-  brightness += ((movieSel === 6 ? 0 : 1) - brightness) * 0.065
+  brightness += ((movieSel === 6 ? 1 : 0) - brightness) * 0.065
   camSpd = movieSel === 6 ? 0.035 : 0.015
   camSet = movieSel === 5 ? 1 : movieSel === 6 ? 2 : 0
   camera.position[0] += (camPos[camSet][0] - camera.position[0]) * camSpd
