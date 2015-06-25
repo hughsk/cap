@@ -89,12 +89,12 @@ var bel = badge({
     analyser = Analyser(gl, audio)
   })
 
-  var np = bel
-    .querySelectorAll('.npm-scb-now-playing, .npm-scb-now-playing a')
-
-  for (var i = 0; i < np.length; i++) {
-    np[i].style.color = '#eb3c76'
-  }
+  // var np = bel
+  //   .querySelectorAll('.npm-scb-now-playing, .npm-scb-now-playing a')
+  //
+  // for (var i = 0; i < np.length; i++) {
+  //   np[i].style.color = '#eb3c76'
+  // }
 })
 
 
