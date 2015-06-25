@@ -52,6 +52,12 @@ const post = Shader(gl
 var analyser
 var audio
 
+var brightness = 1
+var camSpd = 0
+var camSet = 0
+var camPos = [ [0, 0, 0], [80, 200, 80], [0, 50, 0] ]
+var camTar = [ [0, 0, 0], [0, 40, 0], [0, -300, 0] ]
+
 var movieSel = 1
 var movieTex = Texture(gl, [2, 2])
 var movies   = [
@@ -60,6 +66,7 @@ var movies   = [
   'GIF3.webm',
   'GIF4.webm',
   'GIF5.webm',
+  'cap.webm',
   'cap.webm'
 ].map(function(src) {
   var video  = document.createElement('video')
@@ -133,8 +140,18 @@ function render () {
   gl.enable(gl.CULL_FACE)
 
   mat4.perspective(proj, Math.PI / 4, width / height, 0.1, 1000)
-  camera.position = [80, 200, 80]
-  camera.target = [0, 40, 0]
+
+  brightness += ((movieSel === 6 ? 0 : 1) - brightness) * 0.065
+  camSpd = movieSel === 6 ? 0.035 : 0.015
+  camSet = movieSel === 5 ? 1 : movieSel === 6 ? 2 : 0
+  camera.position[0] += (camPos[camSet][0] - camera.position[0]) * camSpd
+  camera.position[1] += (camPos[camSet][1] - camera.position[1]) * camSpd
+  camera.position[2] += (camPos[camSet][2] - camera.position[2]) * camSpd
+
+  camera.target[0] += (camTar[camSet][0] - camera.target[0]) * camSpd
+  camera.target[1] += (camTar[camSet][1] - camera.target[1]) * camSpd
+  camera.target[2] += (camTar[camSet][2] - camera.target[2]) * camSpd
+
   camera.view(view)
   eye(view, eyev)
 
@@ -142,7 +159,7 @@ function render () {
 
   start += Math.pow(analyser.frequencies()[25], 3) * 0.0001
 
-  if (movieSel === 5) {
+  if (movieSel >= 5) {
     geom.bind(shader)
     shader.uniforms.proj  = proj
     shader.uniforms.view  = view
@@ -169,6 +186,7 @@ function render () {
   post.uniforms.back = movieTex.bind(1)
   post.uniforms.wave = tidx
   post.uniforms.time = (Date.now() - start) / 1000
+  post.uniforms.brightness = brightness
   post.uniforms.distortion = movieSel === 5 ? 1 : 0
   triangle(gl)
 }
