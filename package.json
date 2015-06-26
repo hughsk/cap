@@ -1,6 +1,10 @@
 {
   "name": "cap",
   "version": "1.0.0",
+  "scripts": {
+    "start": "budo index.js:bundle.js",
+    "rebuild": "browserify index.js -o bundle.js"
+  },
   "browserify": {
     "transform": [
       "glslify"
@@ -27,6 +31,7 @@
     "glslify": "^2.1.2",
     "icosphere": "^1.0.0",
     "lookat-camera": "^1.0.0",
+    "lut": "^0.2.0",
     "normals": "^1.0.1",
     "parse-obj": "0.0.0",
     "soundcloud-badge": "0.0.0"

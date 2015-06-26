@@ -22,10 +22,12 @@ model.normals  = normals.vertexNormals(model.cells, model.positions)
 
 var texture1
 var texture2
+var textureLut
 
 const fbo  = FBO(gl, [2, 2])
 const img1 = new Image
 const img2 = new Image
+const lut  = new Image
 const proj = new Float32Array(16)
 const view = new Float32Array(16)
 const eyev = new Float32Array(3)
@@ -104,7 +106,11 @@ var bel = badge({
   // }
 })
 
-
+lut.onload = function() {
+  textureLut = Texture(gl, lut)
+  textureLut.minFilter = gl.LINEAR
+  textureLut.magFilter = gl.LINEAR
+}
 img1.onload = function() {
   texture1 = Texture(gl, img1)
   texture1.wrap = [gl.REPEAT, gl.REPEAT]
@@ -116,13 +122,15 @@ img2.onload = function() {
 
 img1.src = 'cap.jpg'
 img2.src = 'grime.jpg'
+lut.src = 'lut.png'
 
 canvas.style.cursor = 'pointer'
-canvas.addEventListener('click', function() {
+window.addEventListener('click', function() {
   movieSel = (movieSel + 1) % movies.length
 }, false)
 
 function render () {
+  if (!textureLut) return
   if (!texture1) return
   if (!texture2) return
   if (!analyser) return
@@ -187,6 +195,8 @@ function render () {
   post.uniforms.wave = tidx
   post.uniforms.time = (Date.now() - start) / 1000
   post.uniforms.brightness = brightness
+  post.uniforms.lut = textureLut.bind(2)
+  post.uniforms.useLUT = movieSel >= 5 ? 0.5 : 0
   post.uniforms.distortion = movieSel === 5 ? 1 : 0
   triangle(gl)
 }
