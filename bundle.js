@@ -25,10 +25,12 @@ model.normals  = normals.vertexNormals(model.cells, model.positions)
 
 var texture1
 var texture2
+var textureLut
 
 const fbo  = FBO(gl, [2, 2])
 const img1 = new Image
 const img2 = new Image
+const lut  = new Image
 const proj = new Float32Array(16)
 const view = new Float32Array(16)
 const eyev = new Float32Array(3)
@@ -49,7 +51,7 @@ const shader = Shader(gl
 
 const post = Shader(gl
   , "#define GLSLIFY 1\n\nprecision mediump float;\n\nattribute vec2 position;\nvarying vec2 uv;\n\nvoid main() {\n  uv = (position + 1.0) * 0.5;\n  gl_Position = vec4(position, 1, 1);\n}\n"
-  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D data;\nuniform sampler2D back;\nuniform sampler2D wave;\nuniform float distortion;\nuniform float brightness;\nuniform float time;\nvarying vec2 uv;\n\nfloat glAudioAnalyser_1_0(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\n\nvoid main() {\n  vec2 vuv = uv;\n\n  vuv.x += distortion * glAudioAnalyser_1_0(wave, abs(vuv.y * 2.0 - 1.0)) * 0.01;\n\n  vec4 inp = texture2D(data, fract(vuv));\n  vec3 bgc = texture2D(back, vec2(0, 1) - fract(vuv * 5. + time * 0.01) * vec2(-1, 1)).rgb;\n\n  gl_FragColor = vec4(brightness + mix(bgc, inp.rgb, inp.a), 1);\n}\n"
+  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D data;\nuniform sampler2D back;\nuniform sampler2D wave;\nuniform sampler2D lut;\nuniform float useLUT;\nuniform float distortion;\nuniform float brightness;\nuniform float time;\nvarying vec2 uv;\n\nfloat glAudioAnalyser_1_0(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\n\nvec4 sampleAs3DTexture(sampler2D tex, vec3 texCoord, float size) {\n  float sliceSize = 1.0 / size;                         // space of 1 slice\n  float slicePixelSize = sliceSize / size;              // space of 1 pixel\n  float sliceInnerSize = slicePixelSize * (size - 1.0); // space of size pixels\n  float zSlice0 = min(floor(texCoord.z * size), size - 1.0);\n  float zSlice1 = min(zSlice0 + 1.0, size - 1.0);\n  float xOffset = slicePixelSize * 0.5 + texCoord.x * sliceInnerSize;\n  float s0 = xOffset + (zSlice0 * sliceSize);\n  float s1 = xOffset + (zSlice1 * sliceSize);\n  vec4 slice0Color = texture2D(tex, vec2(s0, texCoord.y));\n  vec4 slice1Color = texture2D(tex, vec2(s1, texCoord.y));\n  float zOffset = mod(texCoord.z * size, 1.0);\n  return mix(slice0Color, slice1Color, zOffset);\n}\n\nvoid main() {\n  vec2 vuv = uv;\n\n  vuv.x += distortion * glAudioAnalyser_1_0(wave, abs(vuv.y * 2.0 - 1.0)) * 0.01;\n\n  vec4 inp = texture2D(data, fract(vuv));\n  vec3 bgc = texture2D(back, vec2(0, 1) - fract(vuv * 5. + time * 0.01) * vec2(-1, 1)).rgb;\n\n  vec3 inMap  = clamp(brightness + mix(bgc, inp.rgb, inp.a), vec3(0), vec3(1));\n  vec3 outMap = sampleAs3DTexture(lut, inMap, 32.0).rgb;\n\n  outMap.g = 1.0 - outMap.g;\n\n  gl_FragColor = vec4(mix(inMap, outMap, useLUT), 1);\n}\n"
 )
 
 var analyser
@@ -107,7 +109,11 @@ var bel = badge({
   // }
 })
 
-
+lut.onload = function() {
+  textureLut = Texture(gl, lut)
+  textureLut.minFilter = gl.LINEAR
+  textureLut.magFilter = gl.LINEAR
+}
 img1.onload = function() {
   texture1 = Texture(gl, img1)
   texture1.wrap = [gl.REPEAT, gl.REPEAT]
@@ -119,13 +125,15 @@ img2.onload = function() {
 
 img1.src = 'cap.jpg'
 img2.src = 'grime.jpg'
+lut.src = 'lut.png'
 
 canvas.style.cursor = 'pointer'
-canvas.addEventListener('click', function() {
+window.addEventListener('click', function() {
   movieSel = (movieSel + 1) % movies.length
 }, false)
 
 function render () {
+  if (!textureLut) return
   if (!texture1) return
   if (!texture2) return
   if (!analyser) return
@@ -190,6 +198,8 @@ function render () {
   post.uniforms.wave = tidx
   post.uniforms.time = (Date.now() - start) / 1000
   post.uniforms.brightness = brightness
+  post.uniforms.lut = textureLut.bind(2)
+  post.uniforms.useLUT = movieSel >= 5 ? 0.5 : 0
   post.uniforms.distortion = movieSel === 5 ? 1 : 0
   triangle(gl)
 }
