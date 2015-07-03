@@ -1,7 +1,7 @@
 (function() {
 
 const canvas    = document.body.appendChild(document.createElement('canvas'))
-const gl        = false // require('gl-context')(canvas, render)
+const gl        = require('gl-context')(canvas, render)
 const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')

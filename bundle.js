@@ -4,7 +4,7 @@ module.exports={"positions":[[-23.672134,105.569519,-45.370441],[21.572243,80.21
 (function() {
 
 const canvas    = document.body.appendChild(document.createElement('canvas'))
-const gl        = false // require('gl-context')(canvas, render)
+const gl        = require('gl-context')(canvas, render)
 const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
@@ -54,7 +54,7 @@ var start = Date.now()
 
 const shader = Shader(gl
   , "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D wave;\nattribute vec3 position;\nattribute vec3 normal;\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform mat4 proj;\nuniform mat4 view;\n\nfloat glAudioAnalyser_1_0(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\n\nvoid main() {\n  vnormal = normal;\n  vpos = position;\n\n  float off = glAudioAnalyser_1_0(wave, fract(length(vpos * 0.03125)));\n  vpos += vnormal * off * 0.5;\n\n  gl_Position = proj * view * vec4(position + off * vnormal * 0.5, 1);\n}\n"
-  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform float time;\nuniform mat4 proj;\nuniform mat4 view;\nuniform vec3 eye;\n\nuniform sampler2D grad;\nuniform sampler2D grime;\nuniform sampler2D wave;\n\n#define ptpi 1385.4557313670110891409199368797 //powten(pi)\n#define pipi  36.462159607207911770990826022692 //pi pied, pi^pi\n#define picu  31.006276680299820175476315067101 //pi cubed, pi^3\n#define pepi  23.140692632779269005729086367949 //powe(pi);\n#define chpi  11.59195327552152062775175205256  //cosh(pi)\n#define shpi  11.548739357257748377977334315388 //sinh(pi)\n#define pisq  9.8696044010893586188344909998762 //pi squared, pi^2\n#define twpi  6.283185307179586476925286766559  //two pi, 2*pi\n#define pi    3.1415926535897932384626433832795 //pi\n#define e     2.7182818284590452353602874713526 //eulers number\n#define sqpi  1.7724538509055160272981674833411 //square root of pi\n#define phi   1.6180339887498948482045868343656 //golden ratio\n#define hfpi  1.5707963267948966192313216916398 //half pi, 1/pi\n#define cupi  1.4645918875615232630201425272638 //cube root of pi\n#define prpi  1.4396194958475906883364908049738 //pi root of pi\n#define lnpi  1.1447298858494001741434273513531 //logn(pi);\n#define trpi  1.0471975511965977461542144610932 //one third of pi, pi/3\n#define thpi  0.99627207622074994426469058001254//tanh(pi)\n#define lgpi  0.4971498726941338543512682882909 //log(pi)\n#define rcpi  0.31830988618379067153776752674503// reciprocal of pi  , 1/pi\n#define rcpipi  0.0274256931232981061195562708591 // reciprocal of pipi  , 1/pipi\n\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec4 mod289_1_0(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nfloat mod289_1_0(float x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nvec4 permute_1_1(vec4 x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nfloat permute_1_1(float x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt_1_2(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat taylorInvSqrt_1_2(float r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec4 grad4_1_3(float j, vec4 ip)\n  {\n  const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);\n  vec4 p,s;\n\n  p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;\n  p.w = 1.5 - dot(abs(p.xyz), ones.xyz);\n  s = vec4(lessThan(p, vec4(0.0)));\n  p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;\n\n  return p;\n  }\n\n// (sqrt(5) - 1)/4 = F4, used once below\n#define F4 0.309016994374947451\n\nfloat snoise_1_4(vec4 v)\n  {\n  const vec4  C = vec4( 0.138196601125011,  // (5 - sqrt(5))/20  G4\n                        0.276393202250021,  // 2 * G4\n                        0.414589803375032,  // 3 * G4\n                       -0.447213595499958); // -1 + 4 * G4\n\n// First corner\n  vec4 i  = floor(v + dot(v, vec4(F4)) );\n  vec4 x0 = v -   i + dot(i, C.xxxx);\n\n// Other corners\n\n// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)\n  vec4 i0;\n  vec3 isX = step( x0.yzw, x0.xxx );\n  vec3 isYZ = step( x0.zww, x0.yyz );\n//  i0.x = dot( isX, vec3( 1.0 ) );\n  i0.x = isX.x + isX.y + isX.z;\n  i0.yzw = 1.0 - isX;\n//  i0.y += dot( isYZ.xy, vec2( 1.0 ) );\n  i0.y += isYZ.x + isYZ.y;\n  i0.zw += 1.0 - isYZ.xy;\n  i0.z += isYZ.z;\n  i0.w += 1.0 - isYZ.z;\n\n  // i0 now contains the unique values 0,1,2,3 in each channel\n  vec4 i3 = clamp( i0, 0.0, 1.0 );\n  vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );\n  vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );\n\n  //  x0 = x0 - 0.0 + 0.0 * C.xxxx\n  //  x1 = x0 - i1  + 1.0 * C.xxxx\n  //  x2 = x0 - i2  + 2.0 * C.xxxx\n  //  x3 = x0 - i3  + 3.0 * C.xxxx\n  //  x4 = x0 - 1.0 + 4.0 * C.xxxx\n  vec4 x1 = x0 - i1 + C.xxxx;\n  vec4 x2 = x0 - i2 + C.yyyy;\n  vec4 x3 = x0 - i3 + C.zzzz;\n  vec4 x4 = x0 + C.wwww;\n\n// Permutations\n  i = mod289_1_0(i);\n  float j0 = permute_1_1( permute_1_1( permute_1_1( permute_1_1(i.w) + i.z) + i.y) + i.x);\n  vec4 j1 = permute_1_1( permute_1_1( permute_1_1( permute_1_1 (\n             i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))\n           + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))\n           + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))\n           + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));\n\n// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope\n// 7*7*6 = 294, which is close to the ring size 17*17 = 289.\n  vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;\n\n  vec4 p0_1_5 = grad4_1_3(j0,   ip);\n  vec4 p1 = grad4_1_3(j1.x, ip);\n  vec4 p2 = grad4_1_3(j1.y, ip);\n  vec4 p3 = grad4_1_3(j1.z, ip);\n  vec4 p4 = grad4_1_3(j1.w, ip);\n\n// Normalise gradients\n  vec4 norm = taylorInvSqrt_1_2(vec4(dot(p0_1_5,p0_1_5), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0_1_5 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n  p4 *= taylorInvSqrt_1_2(dot(p4,p4));\n\n// Mix contributions from the five corners\n  vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);\n  vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);\n  m0 = m0 * m0;\n  m1 = m1 * m1;\n  return 49.0 * ( dot(m0*m0, vec3( dot( p0_1_5, x0 ), dot( p1, x1 ), dot( p2, x2 )))\n               + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;\n\n  }\n\n\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289_2_6(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289_2_6(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute_2_7(vec3 x) {\n  return mod289_2_6(((x*34.0)+1.0)*x);\n}\n\nfloat snoise_2_8(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289_2_6(i); // Avoid truncation effects in permutation\n  vec3 p = permute_2_7( permute_2_7( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\n\n\nfloat beckmannDistribution_8_9(float x, float roughness) {\n  float NdotH = max(x, 0.0001);\n  float cos2Alpha = NdotH * NdotH;\n  float tan2Alpha = (cos2Alpha - 1.0) / cos2Alpha;\n  float roughness2 = roughness * roughness;\n  float denom = 3.141592653589793 * roughness2 * cos2Alpha * cos2Alpha;\n  return exp(tan2Alpha / roughness2) / denom;\n}\n\n\n\nfloat cookTorranceSpecular_6_10(\n  vec3 lightDirection,\n  vec3 viewDirection,\n  vec3 surfaceNormal,\n  float roughness,\n  float fresnel) {\n\n  float VdotN = max(dot(viewDirection, surfaceNormal), 0.0);\n  float LdotN = max(dot(lightDirection, surfaceNormal), 0.0);\n\n  //Half angle vector\n  vec3 H = normalize(lightDirection + viewDirection);\n\n  //Geometric term\n  float NdotH = max(dot(surfaceNormal, H), 0.0);\n  float VdotH = max(dot(viewDirection, H), 0.000001);\n  float LdotH = max(dot(lightDirection, H), 0.000001);\n  float G1 = (2.0 * NdotH * VdotN) / VdotH;\n  float G2 = (2.0 * NdotH * LdotN) / LdotH;\n  float G = min(1.0, min(G1, G2));\n  \n  //Distribution term\n  float D = beckmannDistribution_8_9(NdotH, roughness);\n\n  //Fresnel term\n  float F = pow(1.0 - VdotN, fresnel);\n\n  //Multiply terms and done\n  return  G * F * D / max(3.14159265 * VdotN, 0.000001);\n}\n\n\nfloat glAudioAnalyser_3_11(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\nvec3 hsv2rgb_4_12(vec3 c) {\n  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\n\n\nfloat hue2rgb_5_13(float f1, float f2, float hue) {\n    if (hue < 0.0)\n        hue += 1.0;\n    else if (hue > 1.0)\n        hue -= 1.0;\n    float res;\n    if ((6.0 * hue) < 1.0)\n        res = f1 + (f2 - f1) * 6.0 * hue;\n    else if ((2.0 * hue) < 1.0)\n        res = f2;\n    else if ((3.0 * hue) < 2.0)\n        res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;\n    else\n        res = f1;\n    return res;\n}\n\nvec3 hsl2rgb_5_14(vec3 hsl) {\n    vec3 rgb;\n    \n    if (hsl.y == 0.0) {\n        rgb = vec3(hsl.z); // Luminance\n    } else {\n        float f2;\n        \n        if (hsl.z < 0.5)\n            f2 = hsl.z * (1.0 + hsl.y);\n        else\n            f2 = hsl.z + hsl.y - hsl.y * hsl.z;\n            \n        float f1 = 2.0 * hsl.z - f2;\n        \n        rgb.r = hue2rgb_5_13(f1, f2, hsl.x + (1.0/3.0));\n        rgb.g = hue2rgb_5_13(f1, f2, hsl.x);\n        rgb.b = hue2rgb_5_13(f1, f2, hsl.x - (1.0/3.0));\n    }   \n    return rgb;\n}\n\nvec3 hsl2rgb_5_14(float h, float s, float l) {\n    return hsl2rgb_5_14(vec3(h, s, l));\n}\n\n\nfloat fogFactorExp2_7_15(\n  const float dist,\n  const float density\n) {\n  const float LOG2 = -1.442695;\n  float d = density * dist;\n  return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);\n}\n\n\n\n\nvec3 rotate(vec3 vec, vec3 axis, float ang)\n{\n    return vec * cos(ang) + cross(axis, vec) * sin(ang) + axis * dot(axis, vec) * (1.0 - cos(ang));\n}\n\nvec3 pin(vec3 v)\n{\n    vec3 q = vec3(0.0);\n\n    q.x += sin(v.x)*0.5+0.5;\n    q.y += sin(v.y+0.66666667*pi)*0.5+0.5;\n    q.z += sin(v.z+1.33333333*pi)*0.5+0.5;\n\n    return (q);\n}\n\nvec3 spin(vec3 v)\n{\n    for(int i = 1; i <3; i++)\n    {\n        v=pin(rotate((v),pin(v),float(i*i)))*e;\n    }\n    return (v.xyz);\n}\n\nvec3 fin(vec3 v){\n\n\tvec4 vt = vec4(v,(v.x+v.y+v.z)/pi);\n\tvec4 vs = vt;\n\tvt.xyz  += pin(vs.xyz);\n\tvt.xyz  += pin(vs.yzw);\n\tvt.xyz  += pin(vs.zwx);\n\tvt.xyz  += pin(vs.wxy);\n\treturn spin(vt.xyz/pisq);\n}\n\n\nvec3 sfin(vec3 v)\n{\n    for(int i = 1; i < 5; i++)\n    {\n        v =(v+fin(v*float(i)));\n    }\n    return (normalize((pin(v.zxy)))+(spin(v.zxy*rcpi)));\n}\n\nvoid main() {\n  float r = snoise_1_4(vec4(vpos * 0.05 * vec3(1, 1, 0.25) + 2023.0, time)) * 1.0\n          + snoise_1_4(vec4(vpos * 0.08 + 1023.0, time)) * 0.5;\n\n  float t = time * 0.01;\n\n  r /= 1.5;\n  // float g = noise(vec4(vpos * 0.01 + 5023.0, time)) + noise(vec4(vpos * 0.02 + 3023.0, time));\n  // float b = noise(vec4(vpos * 0.01 + 3023.0, time)) + noise(vec4(vpos * 0.02 + 4023.0, time));\n\n  vec3 ridges = sin(vpos * 30.0);\n  vec3 normal = normalize(vnormal + ridges * 0.03);\n  vec3 vdir = normalize(eye - vpos);\n  vec3 ldir = normalize(vec3(0, 1, 0));\n  vec3 grimeCol1 = texture2D(grime, vpos.xz * 2.5 + vec2(5.1)).rgb;\n  vec3 grimeCol2 = texture2D(grime, vpos.xz * 0.005 + vec2(5.1)).rgb;\n\n  vec3 mat = hsl2rgb_5_14(r * 0.5 + 0.5, 0.1, 0.25) * pow(1.0 - grimeCol1, vec3(2.0));\n\n  float dif  = max(0.0, dot(ldir, normal)) * 0.5 + 0.1;\n  float spec = cookTorranceSpecular_6_10(ldir, vdir, normal, 1.9, 0.0);\n  vec3 color = mix(0.7, 1.0, length(ridges * 0.5 + 0.5)) * dif * mat + spec * 2.0;\n\n  vec3 spos = vpos + vec3(0, 1, 0) * snoise_2_8(vec2(vpos.x, 0.5)) * 0.5;\n  float lut = (sfin((spos * 0.03+sin(t/pi)*twpi)*pi)*dif).r;\n\n  color = mix(color, texture2D(grad, vec2(lut)).rgb+spec, 0.6);\n  color *= mix(vec3(0.8), vec3(1.1), grimeCol2);\n  color = mix(color, vec3(1.0), fogFactorExp2_7_15(length(eye - vpos), 0.0015));\n\n  // float amp = analyse(wave, fract(length(vpos)));\n\n  gl_FragColor = vec4(color, 1);\n}\n"
+  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform float time;\nuniform mat4 proj;\nuniform mat4 view;\nuniform vec3 eye;\n\nuniform sampler2D grad;\nuniform sampler2D grime;\nuniform sampler2D wave;\n\n#define ptpi 1385.4557313670110891409199368797 //powten(pi)\n#define pipi  36.462159607207911770990826022692 //pi pied, pi^pi\n#define picu  31.006276680299820175476315067101 //pi cubed, pi^3\n#define pepi  23.140692632779269005729086367949 //powe(pi);\n#define chpi  11.59195327552152062775175205256  //cosh(pi)\n#define shpi  11.548739357257748377977334315388 //sinh(pi)\n#define pisq  9.8696044010893586188344909998762 //pi squared, pi^2\n#define twpi  6.283185307179586476925286766559  //two pi, 2*pi\n#define pi    3.1415926535897932384626433832795 //pi\n#define e     2.7182818284590452353602874713526 //eulers number\n#define sqpi  1.7724538509055160272981674833411 //square root of pi\n#define phi   1.6180339887498948482045868343656 //golden ratio\n#define hfpi  1.5707963267948966192313216916398 //half pi, 1/pi\n#define cupi  1.4645918875615232630201425272638 //cube root of pi\n#define prpi  1.4396194958475906883364908049738 //pi root of pi\n#define lnpi  1.1447298858494001741434273513531 //logn(pi);\n#define trpi  1.0471975511965977461542144610932 //one third of pi, pi/3\n#define thpi  0.99627207622074994426469058001254//tanh(pi)\n#define lgpi  0.4971498726941338543512682882909 //log(pi)\n#define rcpi  0.31830988618379067153776752674503// reciprocal of pi  , 1/pi\n#define rcpipi  0.0274256931232981061195562708591 // reciprocal of pipi  , 1/pipi\n\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec4 mod289_1_0(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nfloat mod289_1_0(float x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nvec4 permute_1_1(vec4 x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nfloat permute_1_1(float x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt_1_2(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat taylorInvSqrt_1_2(float r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec4 grad4_1_3(float j, vec4 ip)\n  {\n  const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);\n  vec4 p,s;\n\n  p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;\n  p.w = 1.5 - dot(abs(p.xyz), ones.xyz);\n  s = vec4(lessThan(p, vec4(0.0)));\n  p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;\n\n  return p;\n  }\n\n// (sqrt(5) - 1)/4 = F4, used once below\n#define F4 0.309016994374947451\n\nfloat snoise_1_4(vec4 v)\n  {\n  const vec4  C = vec4( 0.138196601125011,  // (5 - sqrt(5))/20  G4\n                        0.276393202250021,  // 2 * G4\n                        0.414589803375032,  // 3 * G4\n                       -0.447213595499958); // -1 + 4 * G4\n\n// First corner\n  vec4 i  = floor(v + dot(v, vec4(F4)) );\n  vec4 x0 = v -   i + dot(i, C.xxxx);\n\n// Other corners\n\n// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)\n  vec4 i0;\n  vec3 isX = step( x0.yzw, x0.xxx );\n  vec3 isYZ = step( x0.zww, x0.yyz );\n//  i0.x = dot( isX, vec3( 1.0 ) );\n  i0.x = isX.x + isX.y + isX.z;\n  i0.yzw = 1.0 - isX;\n//  i0.y += dot( isYZ.xy, vec2( 1.0 ) );\n  i0.y += isYZ.x + isYZ.y;\n  i0.zw += 1.0 - isYZ.xy;\n  i0.z += isYZ.z;\n  i0.w += 1.0 - isYZ.z;\n\n  // i0 now contains the unique values 0,1,2,3 in each channel\n  vec4 i3 = clamp( i0, 0.0, 1.0 );\n  vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );\n  vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );\n\n  //  x0 = x0 - 0.0 + 0.0 * C.xxxx\n  //  x1 = x0 - i1  + 1.0 * C.xxxx\n  //  x2 = x0 - i2  + 2.0 * C.xxxx\n  //  x3 = x0 - i3  + 3.0 * C.xxxx\n  //  x4 = x0 - 1.0 + 4.0 * C.xxxx\n  vec4 x1 = x0 - i1 + C.xxxx;\n  vec4 x2 = x0 - i2 + C.yyyy;\n  vec4 x3 = x0 - i3 + C.zzzz;\n  vec4 x4 = x0 + C.wwww;\n\n// Permutations\n  i = mod289_1_0(i);\n  float j0 = permute_1_1( permute_1_1( permute_1_1( permute_1_1(i.w) + i.z) + i.y) + i.x);\n  vec4 j1 = permute_1_1( permute_1_1( permute_1_1( permute_1_1 (\n             i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))\n           + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))\n           + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))\n           + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));\n\n// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope\n// 7*7*6 = 294, which is close to the ring size 17*17 = 289.\n  vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;\n\n  vec4 p0_1_5 = grad4_1_3(j0,   ip);\n  vec4 p1 = grad4_1_3(j1.x, ip);\n  vec4 p2 = grad4_1_3(j1.y, ip);\n  vec4 p3 = grad4_1_3(j1.z, ip);\n  vec4 p4 = grad4_1_3(j1.w, ip);\n\n// Normalise gradients\n  vec4 norm = taylorInvSqrt_1_2(vec4(dot(p0_1_5,p0_1_5), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0_1_5 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n  p4 *= taylorInvSqrt_1_2(dot(p4,p4));\n\n// Mix contributions from the five corners\n  vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);\n  vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);\n  m0 = m0 * m0;\n  m1 = m1 * m1;\n  return 49.0 * ( dot(m0*m0, vec3( dot( p0_1_5, x0 ), dot( p1, x1 ), dot( p2, x2 )))\n               + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;\n\n  }\n\n\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289_2_6(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289_2_6(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute_2_7(vec3 x) {\n  return mod289_2_6(((x*34.0)+1.0)*x);\n}\n\nfloat snoise_2_8(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289_2_6(i); // Avoid truncation effects in permutation\n  vec3 p = permute_2_7( permute_2_7( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\n\n\nfloat beckmannDistribution_8_9(float x, float roughness) {\n  float NdotH = max(x, 0.0001);\n  float cos2Alpha = NdotH * NdotH;\n  float tan2Alpha = (cos2Alpha - 1.0) / cos2Alpha;\n  float roughness2 = roughness * roughness;\n  float denom = 3.141592653589793 * roughness2 * cos2Alpha * cos2Alpha;\n  return exp(tan2Alpha / roughness2) / denom;\n}\n\n\n\nfloat cookTorranceSpecular_3_10(\n  vec3 lightDirection,\n  vec3 viewDirection,\n  vec3 surfaceNormal,\n  float roughness,\n  float fresnel) {\n\n  float VdotN = max(dot(viewDirection, surfaceNormal), 0.0);\n  float LdotN = max(dot(lightDirection, surfaceNormal), 0.0);\n\n  //Half angle vector\n  vec3 H = normalize(lightDirection + viewDirection);\n\n  //Geometric term\n  float NdotH = max(dot(surfaceNormal, H), 0.0);\n  float VdotH = max(dot(viewDirection, H), 0.000001);\n  float LdotH = max(dot(lightDirection, H), 0.000001);\n  float G1 = (2.0 * NdotH * VdotN) / VdotH;\n  float G2 = (2.0 * NdotH * LdotN) / LdotH;\n  float G = min(1.0, min(G1, G2));\n  \n  //Distribution term\n  float D = beckmannDistribution_8_9(NdotH, roughness);\n\n  //Fresnel term\n  float F = pow(1.0 - VdotN, fresnel);\n\n  //Multiply terms and done\n  return  G * F * D / max(3.14159265 * VdotN, 0.000001);\n}\n\n\nfloat glAudioAnalyser_4_11(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\nvec3 hsv2rgb_5_12(vec3 c) {\n  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\n\n\nfloat hue2rgb_7_13(float f1, float f2, float hue) {\n    if (hue < 0.0)\n        hue += 1.0;\n    else if (hue > 1.0)\n        hue -= 1.0;\n    float res;\n    if ((6.0 * hue) < 1.0)\n        res = f1 + (f2 - f1) * 6.0 * hue;\n    else if ((2.0 * hue) < 1.0)\n        res = f2;\n    else if ((3.0 * hue) < 2.0)\n        res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;\n    else\n        res = f1;\n    return res;\n}\n\nvec3 hsl2rgb_7_14(vec3 hsl) {\n    vec3 rgb;\n    \n    if (hsl.y == 0.0) {\n        rgb = vec3(hsl.z); // Luminance\n    } else {\n        float f2;\n        \n        if (hsl.z < 0.5)\n            f2 = hsl.z * (1.0 + hsl.y);\n        else\n            f2 = hsl.z + hsl.y - hsl.y * hsl.z;\n            \n        float f1 = 2.0 * hsl.z - f2;\n        \n        rgb.r = hue2rgb_7_13(f1, f2, hsl.x + (1.0/3.0));\n        rgb.g = hue2rgb_7_13(f1, f2, hsl.x);\n        rgb.b = hue2rgb_7_13(f1, f2, hsl.x - (1.0/3.0));\n    }   \n    return rgb;\n}\n\nvec3 hsl2rgb_7_14(float h, float s, float l) {\n    return hsl2rgb_7_14(vec3(h, s, l));\n}\n\n\nfloat fogFactorExp2_6_15(\n  const float dist,\n  const float density\n) {\n  const float LOG2 = -1.442695;\n  float d = density * dist;\n  return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);\n}\n\n\n\n\nvec3 rotate(vec3 vec, vec3 axis, float ang)\n{\n    return vec * cos(ang) + cross(axis, vec) * sin(ang) + axis * dot(axis, vec) * (1.0 - cos(ang));\n}\n\nvec3 pin(vec3 v)\n{\n    vec3 q = vec3(0.0);\n\n    q.x += sin(v.x)*0.5+0.5;\n    q.y += sin(v.y+0.66666667*pi)*0.5+0.5;\n    q.z += sin(v.z+1.33333333*pi)*0.5+0.5;\n\n    return (q);\n}\n\nvec3 spin(vec3 v)\n{\n    for(int i = 1; i <3; i++)\n    {\n        v=pin(rotate((v),pin(v),float(i*i)))*e;\n    }\n    return (v.xyz);\n}\n\nvec3 fin(vec3 v){\n\n\tvec4 vt = vec4(v,(v.x+v.y+v.z)/pi);\n\tvec4 vs = vt;\n\tvt.xyz  += pin(vs.xyz);\n\tvt.xyz  += pin(vs.yzw);\n\tvt.xyz  += pin(vs.zwx);\n\tvt.xyz  += pin(vs.wxy);\n\treturn spin(vt.xyz/pisq);\n}\n\n\nvec3 sfin(vec3 v)\n{\n    for(int i = 1; i < 5; i++)\n    {\n        v =(v+fin(v*float(i)));\n    }\n    return (normalize((pin(v.zxy)))+(spin(v.zxy*rcpi)));\n}\n\nvoid main() {\n  float r = snoise_1_4(vec4(vpos * 0.05 * vec3(1, 1, 0.25) + 2023.0, time)) * 1.0\n          + snoise_1_4(vec4(vpos * 0.08 + 1023.0, time)) * 0.5;\n\n  float t = time * 0.01;\n\n  r /= 1.5;\n  // float g = noise(vec4(vpos * 0.01 + 5023.0, time)) + noise(vec4(vpos * 0.02 + 3023.0, time));\n  // float b = noise(vec4(vpos * 0.01 + 3023.0, time)) + noise(vec4(vpos * 0.02 + 4023.0, time));\n\n  vec3 ridges = sin(vpos * 30.0);\n  vec3 normal = normalize(vnormal + ridges * 0.03);\n  vec3 vdir = normalize(eye - vpos);\n  vec3 ldir = normalize(vec3(0, 1, 0));\n  vec3 grimeCol1 = texture2D(grime, vpos.xz * 2.5 + vec2(5.1)).rgb;\n  vec3 grimeCol2 = texture2D(grime, vpos.xz * 0.005 + vec2(5.1)).rgb;\n\n  vec3 mat = hsl2rgb_7_14(r * 0.5 + 0.5, 0.1, 0.25) * pow(1.0 - grimeCol1, vec3(2.0));\n\n  float dif  = max(0.0, dot(ldir, normal)) * 0.5 + 0.1;\n  float spec = cookTorranceSpecular_3_10(ldir, vdir, normal, 1.9, 0.0);\n  vec3 color = mix(0.7, 1.0, length(ridges * 0.5 + 0.5)) * dif * mat + spec * 2.0;\n\n  vec3 spos = vpos + vec3(0, 1, 0) * snoise_2_8(vec2(vpos.x, 0.5)) * 0.5;\n  float lut = (sfin((spos * 0.03+sin(t/pi)*twpi)*pi)*dif).r;\n\n  color = mix(color, texture2D(grad, vec2(lut)).rgb+spec, 0.6);\n  color *= mix(vec3(0.8), vec3(1.1), grimeCol2);\n  color = mix(color, vec3(1.0), fogFactorExp2_6_15(length(eye - vpos), 0.0015));\n\n  // float amp = analyse(wave, fract(length(vpos)));\n\n  gl_FragColor = vec4(color, 1);\n}\n"
 )
 
 const post = Shader(gl
@@ -247,7 +247,7 @@ function scale(mesh) {
 
 })()
 
-},{"./cap.json":1,"a-big-triangle":20,"canvas-fit":22,"class-list":24,"eye-vector":26,"gl-audio-analyser":28,"gl-fbo":33,"gl-geometry":34,"gl-mat4":66,"gl-shader":81,"gl-texture2d":101,"icosphere":102,"lookat-camera":105,"normals":107,"soundcloud-badge":108,"touch-position":116}],3:[function(require,module,exports){
+},{"./cap.json":1,"a-big-triangle":20,"canvas-fit":22,"class-list":24,"eye-vector":26,"gl-audio-analyser":28,"gl-context":33,"gl-fbo":35,"gl-geometry":36,"gl-mat4":68,"gl-shader":83,"gl-texture2d":103,"icosphere":104,"lookat-camera":107,"normals":109,"soundcloud-badge":110,"touch-position":118}],3:[function(require,module,exports){
 "use strict"
 
 var pool = require("typedarray-pool")
@@ -2312,7 +2312,7 @@ exports.clearCache = function clearCache() {
   }
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"bit-twiddle":12,"buffer":118,"dup":13}],15:[function(require,module,exports){
+},{"bit-twiddle":12,"buffer":120,"dup":13}],15:[function(require,module,exports){
 "use strict"
 
 function doBind(gl, elements, attributes) {
@@ -3459,7 +3459,7 @@ function isTruthy(value) {
     return !!value
 }
 
-},{"indexof":104}],25:[function(require,module,exports){
+},{"indexof":106}],25:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6908,7 +6908,7 @@ GLAudioAnalyser.prototype.bindFrequencies = function(index, channel) {
   return this.freqTex.bind(index)
 }
 
-},{"gl-texture2d":101,"ndarray":29,"web-audio-analyser":32}],29:[function(require,module,exports){
+},{"gl-texture2d":103,"ndarray":29,"web-audio-analyser":32}],29:[function(require,module,exports){
 module.exports=require(9)
 },{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/ndarray.js":9,"iota-array":30,"is-buffer":31}],30:[function(require,module,exports){
 module.exports=require(10)
@@ -6995,6 +6995,79 @@ WebAudioAnalyser.prototype.frequencies = function(output, channel) {
 }
 
 },{}],33:[function(require,module,exports){
+var raf = require('raf-component')
+
+module.exports = createContext
+
+function createContext(canvas, opts, render) {
+  if (typeof opts === 'function') {
+    render = opts
+    opts = {}
+  } else {
+    opts = opts || {}
+  }
+
+  var gl = (
+    canvas.getContext('webgl', opts) ||
+    canvas.getContext('webgl-experimental', opts) ||
+    canvas.getContext('experimental-webgl', opts)
+  )
+
+  if (!gl) {
+    throw new Error('Unable to initialize WebGL')
+  }
+
+  if (render) raf(tick)
+
+  return gl
+
+  function tick() {
+    render(gl)
+    raf(tick)
+  }
+}
+
+},{"raf-component":34}],34:[function(require,module,exports){
+/**
+ * Expose `requestAnimationFrame()`.
+ */
+
+exports = module.exports = window.requestAnimationFrame
+  || window.webkitRequestAnimationFrame
+  || window.mozRequestAnimationFrame
+  || window.oRequestAnimationFrame
+  || window.msRequestAnimationFrame
+  || fallback;
+
+/**
+ * Fallback implementation.
+ */
+
+var prev = new Date().getTime();
+function fallback(fn) {
+  var curr = new Date().getTime();
+  var ms = Math.max(0, 16 - (curr - prev));
+  var req = setTimeout(fn, ms);
+  prev = curr;
+  return req;
+}
+
+/**
+ * Cancel.
+ */
+
+var cancel = window.cancelAnimationFrame
+  || window.webkitCancelAnimationFrame
+  || window.mozCancelAnimationFrame
+  || window.oCancelAnimationFrame
+  || window.msCancelAnimationFrame
+  || window.clearTimeout;
+
+exports.cancel = function(id){
+  cancel.call(window, id);
+};
+
+},{}],35:[function(require,module,exports){
 'use strict'
 
 var createTexture = require('gl-texture2d')
@@ -7461,7 +7534,7 @@ function createFBO(gl, width, height, options) {
     WEBGL_draw_buffers)
 }
 
-},{"gl-texture2d":101}],34:[function(require,module,exports){
+},{"gl-texture2d":103}],36:[function(require,module,exports){
 var normalize = require('./normalize')
 var createVAO = require('gl-vao')
 
@@ -7603,7 +7676,7 @@ GLGeometry.prototype.update = function update() {
   )
 }
 
-},{"./normalize":56,"gl-vao":53}],35:[function(require,module,exports){
+},{"./normalize":58,"gl-vao":55}],37:[function(require,module,exports){
 var dtype = require('dtype')
 
 module.exports = pack
@@ -7631,7 +7704,7 @@ function pack(arr, type) {
   return out
 }
 
-},{"dtype":36}],36:[function(require,module,exports){
+},{"dtype":38}],38:[function(require,module,exports){
 (function (Buffer){
 module.exports = function(dtype) {
   switch (dtype) {
@@ -7666,7 +7739,7 @@ module.exports = function(dtype) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":118}],37:[function(require,module,exports){
+},{"buffer":120}],39:[function(require,module,exports){
 module.exports = function(dtype) {
   switch (dtype) {
     case 'int8':
@@ -7689,39 +7762,39 @@ module.exports = function(dtype) {
       return Array
   }
 }
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 module.exports=require(3)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/buffer.js":3,"ndarray":44,"ndarray-ops":39,"typedarray-pool":49}],39:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/buffer.js":3,"ndarray":46,"ndarray-ops":41,"typedarray-pool":51}],41:[function(require,module,exports){
 module.exports=require(4)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/ndarray-ops.js":4,"cwise-compiler":40}],40:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/ndarray-ops.js":4,"cwise-compiler":42}],42:[function(require,module,exports){
 module.exports=require(5)
-},{"./lib/thunk.js":42,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/compiler.js":5}],41:[function(require,module,exports){
+},{"./lib/thunk.js":44,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/compiler.js":5}],43:[function(require,module,exports){
 module.exports=require(6)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/compile.js":6,"uniq":43}],42:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/compile.js":6,"uniq":45}],44:[function(require,module,exports){
 module.exports=require(7)
-},{"./compile.js":41,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/thunk.js":7}],43:[function(require,module,exports){
+},{"./compile.js":43,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/thunk.js":7}],45:[function(require,module,exports){
 module.exports=require(8)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/node_modules/uniq/uniq.js":8}],44:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/node_modules/uniq/uniq.js":8}],46:[function(require,module,exports){
 module.exports=require(9)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/ndarray.js":9,"iota-array":45,"is-buffer":46}],45:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/ndarray.js":9,"iota-array":47,"is-buffer":48}],47:[function(require,module,exports){
 module.exports=require(10)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/iota-array/iota.js":10}],46:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/iota-array/iota.js":10}],48:[function(require,module,exports){
 module.exports=require(11)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/is-buffer/index.js":11}],47:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/is-buffer/index.js":11}],49:[function(require,module,exports){
 module.exports=require(12)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/bit-twiddle/twiddle.js":12}],48:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/bit-twiddle/twiddle.js":12}],50:[function(require,module,exports){
 module.exports=require(13)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/dup/dup.js":13}],49:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/dup/dup.js":13}],51:[function(require,module,exports){
 module.exports=require(14)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/pool.js":14,"bit-twiddle":47,"buffer":118,"dup":48}],50:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/pool.js":14,"bit-twiddle":49,"buffer":120,"dup":50}],52:[function(require,module,exports){
 module.exports=require(15)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/do-bind.js":15}],51:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/do-bind.js":15}],53:[function(require,module,exports){
 module.exports=require(16)
-},{"./do-bind.js":50,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/vao-emulated.js":16}],52:[function(require,module,exports){
+},{"./do-bind.js":52,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/vao-emulated.js":16}],54:[function(require,module,exports){
 module.exports=require(17)
-},{"./do-bind.js":50,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/vao-native.js":17}],53:[function(require,module,exports){
+},{"./do-bind.js":52,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/lib/vao-native.js":17}],55:[function(require,module,exports){
 module.exports=require(18)
-},{"./lib/vao-emulated.js":51,"./lib/vao-native.js":52,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/vao.js":18}],54:[function(require,module,exports){
+},{"./lib/vao-emulated.js":53,"./lib/vao-native.js":54,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-vao/vao.js":18}],56:[function(require,module,exports){
 module.exports      = isTypedArray
 isTypedArray.strict = isStrictTypedArray
 isTypedArray.loose  = isLooseTypedArray
@@ -7762,7 +7835,7 @@ function isLooseTypedArray(arr) {
   return names[toString.call(arr)]
 }
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 module.exports = function(arr) {
   if (!arr) return false
   if (!arr.dtype) return false
@@ -7770,7 +7843,7 @@ module.exports = function(arr) {
   return re.test(String(arr.constructor))
 }
 
-},{}],56:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 var pack         = require('array-pack-2d')
 var ista         = require('is-typedarray')
 var createBuffer = require('gl-buffer')
@@ -7851,7 +7924,7 @@ function convert(a, b) {
   return b
 }
 
-},{"array-pack-2d":35,"dtype":37,"gl-buffer":38,"is-typedarray":54,"isndarray":55}],57:[function(require,module,exports){
+},{"array-pack-2d":37,"dtype":39,"gl-buffer":40,"is-typedarray":56,"isndarray":57}],59:[function(require,module,exports){
 module.exports = adjoint;
 
 /**
@@ -7885,7 +7958,7 @@ function adjoint(out, a) {
     out[15] =  (a00 * (a11 * a22 - a12 * a21) - a10 * (a01 * a22 - a02 * a21) + a20 * (a01 * a12 - a02 * a11));
     return out;
 };
-},{}],58:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = clone;
 
 /**
@@ -7914,7 +7987,7 @@ function clone(a) {
     out[15] = a[15];
     return out;
 };
-},{}],59:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = copy;
 
 /**
@@ -7943,7 +8016,7 @@ function copy(out, a) {
     out[15] = a[15];
     return out;
 };
-},{}],60:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 module.exports = create;
 
 /**
@@ -7971,7 +8044,7 @@ function create() {
     out[15] = 1;
     return out;
 };
-},{}],61:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 module.exports = determinant;
 
 /**
@@ -8002,7 +8075,7 @@ function determinant(a) {
     // Calculate the determinant
     return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 };
-},{}],62:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 module.exports = fromQuat;
 
 /**
@@ -8050,7 +8123,7 @@ function fromQuat(out, q) {
 
     return out;
 };
-},{}],63:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 module.exports = fromRotationTranslation;
 
 /**
@@ -8104,7 +8177,7 @@ function fromRotationTranslation(out, q, v) {
     
     return out;
 };
-},{}],64:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 module.exports = frustum;
 
 /**
@@ -8141,7 +8214,7 @@ function frustum(out, left, right, bottom, top, near, far) {
     out[15] = 0;
     return out;
 };
-},{}],65:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 module.exports = identity;
 
 /**
@@ -8169,7 +8242,7 @@ function identity(out) {
     out[15] = 1;
     return out;
 };
-},{}],66:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 module.exports = {
   create: require('./create')
   , clone: require('./clone')
@@ -8195,7 +8268,7 @@ module.exports = {
   , lookAt: require('./lookAt')
   , str: require('./str')
 }
-},{"./adjoint":57,"./clone":58,"./copy":59,"./create":60,"./determinant":61,"./fromQuat":62,"./fromRotationTranslation":63,"./frustum":64,"./identity":65,"./invert":67,"./lookAt":68,"./multiply":69,"./ortho":70,"./perspective":71,"./perspectiveFromFieldOfView":72,"./rotate":73,"./rotateX":74,"./rotateY":75,"./rotateZ":76,"./scale":77,"./str":78,"./translate":79,"./transpose":80}],67:[function(require,module,exports){
+},{"./adjoint":59,"./clone":60,"./copy":61,"./create":62,"./determinant":63,"./fromQuat":64,"./fromRotationTranslation":65,"./frustum":66,"./identity":67,"./invert":69,"./lookAt":70,"./multiply":71,"./ortho":72,"./perspective":73,"./perspectiveFromFieldOfView":74,"./rotate":75,"./rotateX":76,"./rotateY":77,"./rotateZ":78,"./scale":79,"./str":80,"./translate":81,"./transpose":82}],69:[function(require,module,exports){
 module.exports = invert;
 
 /**
@@ -8251,7 +8324,7 @@ function invert(out, a) {
 
     return out;
 };
-},{}],68:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 var identity = require('./identity');
 
 module.exports = lookAt;
@@ -8342,7 +8415,7 @@ function lookAt(out, eye, center, up) {
 
     return out;
 };
-},{"./identity":65}],69:[function(require,module,exports){
+},{"./identity":67}],71:[function(require,module,exports){
 module.exports = multiply;
 
 /**
@@ -8385,7 +8458,7 @@ function multiply(out, a, b) {
     out[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
     return out;
 };
-},{}],70:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 module.exports = ortho;
 
 /**
@@ -8422,7 +8495,7 @@ function ortho(out, left, right, bottom, top, near, far) {
     out[15] = 1;
     return out;
 };
-},{}],71:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 module.exports = perspective;
 
 /**
@@ -8456,7 +8529,7 @@ function perspective(out, fovy, aspect, near, far) {
     out[15] = 0;
     return out;
 };
-},{}],72:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 module.exports = perspectiveFromFieldOfView;
 
 /**
@@ -8498,7 +8571,7 @@ function perspectiveFromFieldOfView(out, fov, near, far) {
 }
 
 
-},{}],73:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 module.exports = rotate;
 
 /**
@@ -8563,7 +8636,7 @@ function rotate(out, a, rad, axis) {
     }
     return out;
 };
-},{}],74:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 module.exports = rotateX;
 
 /**
@@ -8608,7 +8681,7 @@ function rotateX(out, a, rad) {
     out[11] = a23 * c - a13 * s;
     return out;
 };
-},{}],75:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 module.exports = rotateY;
 
 /**
@@ -8653,7 +8726,7 @@ function rotateY(out, a, rad) {
     out[11] = a03 * s + a23 * c;
     return out;
 };
-},{}],76:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 module.exports = rotateZ;
 
 /**
@@ -8698,7 +8771,7 @@ function rotateZ(out, a, rad) {
     out[7] = a13 * c - a03 * s;
     return out;
 };
-},{}],77:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 module.exports = scale;
 
 /**
@@ -8730,7 +8803,7 @@ function scale(out, a, v) {
     out[15] = a[15];
     return out;
 };
-},{}],78:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 module.exports = str;
 
 /**
@@ -8745,7 +8818,7 @@ function str(a) {
                     a[8] + ', ' + a[9] + ', ' + a[10] + ', ' + a[11] + ', ' + 
                     a[12] + ', ' + a[13] + ', ' + a[14] + ', ' + a[15] + ')';
 };
-},{}],79:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 module.exports = translate;
 
 /**
@@ -8784,7 +8857,7 @@ function translate(out, a, v) {
 
     return out;
 };
-},{}],80:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 module.exports = transpose;
 
 /**
@@ -8834,7 +8907,7 @@ function transpose(out, a) {
     
     return out;
 };
-},{}],81:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 'use strict'
 
 var createUniformWrapper   = require('./lib/create-uniforms')
@@ -9069,7 +9142,7 @@ function createShader(
 }
 
 module.exports = createShader
-},{"./lib/create-attributes":82,"./lib/create-uniforms":83,"./lib/reflect":84,"./lib/runtime-reflect":85,"./lib/shader-cache":86}],82:[function(require,module,exports){
+},{"./lib/create-attributes":84,"./lib/create-uniforms":85,"./lib/reflect":86,"./lib/runtime-reflect":87,"./lib/shader-cache":88}],84:[function(require,module,exports){
 'use strict'
 
 module.exports = createAttributeWrapper
@@ -9331,7 +9404,7 @@ function createAttributeWrapper(
   }
   return obj
 }
-},{}],83:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 'use strict'
 
 var coallesceUniforms = require('./reflect')
@@ -9523,7 +9596,7 @@ function createUniformWrapper(gl, wrapper, uniforms, locations) {
   }
 }
 
-},{"./reflect":84}],84:[function(require,module,exports){
+},{"./reflect":86}],86:[function(require,module,exports){
 'use strict'
 
 module.exports = makeReflectTypes
@@ -9581,7 +9654,7 @@ function makeReflectTypes(uniforms, useIndex) {
   }
   return obj
 }
-},{}],85:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 'use strict'
 
 exports.uniforms    = runtimeUniforms
@@ -9650,7 +9723,7 @@ function runtimeAttributes(gl, program) {
   }
   return result
 }
-},{}],86:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 'use strict'
 
 exports.shader   = getShaderReference
@@ -9781,7 +9854,7 @@ function createProgram(gl, vref, fref, attribs, locations) {
   return getCache(gl).getProgram(vref, fref, attribs, locations)
 }
 
-},{"weakmap-shim":89}],87:[function(require,module,exports){
+},{"weakmap-shim":91}],89:[function(require,module,exports){
 var hiddenStore = require('./hidden-store.js');
 
 module.exports = createStore;
@@ -9802,7 +9875,7 @@ function createStore() {
     };
 }
 
-},{"./hidden-store.js":88}],88:[function(require,module,exports){
+},{"./hidden-store.js":90}],90:[function(require,module,exports){
 module.exports = hiddenStore;
 
 function hiddenStore(obj, key) {
@@ -9820,7 +9893,7 @@ function hiddenStore(obj, key) {
     return store;
 }
 
-},{}],89:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 // Original - @Gozola. 
 // https://gist.github.com/Gozala/1269991
 // This is a reimplemented version (with a few bug fixes).
@@ -9850,29 +9923,29 @@ function weakMap() {
     }
 }
 
-},{"./create-store.js":87}],90:[function(require,module,exports){
+},{"./create-store.js":89}],92:[function(require,module,exports){
 module.exports=require(4)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/ndarray-ops.js":4,"cwise-compiler":91}],91:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/ndarray-ops.js":4,"cwise-compiler":93}],93:[function(require,module,exports){
 module.exports=require(5)
-},{"./lib/thunk.js":93,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/compiler.js":5}],92:[function(require,module,exports){
+},{"./lib/thunk.js":95,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/compiler.js":5}],94:[function(require,module,exports){
 module.exports=require(6)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/compile.js":6,"uniq":94}],93:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/compile.js":6,"uniq":96}],95:[function(require,module,exports){
 module.exports=require(7)
-},{"./compile.js":92,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/thunk.js":7}],94:[function(require,module,exports){
+},{"./compile.js":94,"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/lib/thunk.js":7}],96:[function(require,module,exports){
 module.exports=require(8)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/node_modules/uniq/uniq.js":8}],95:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray-ops/node_modules/cwise-compiler/node_modules/uniq/uniq.js":8}],97:[function(require,module,exports){
 module.exports=require(9)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/ndarray.js":9,"iota-array":96,"is-buffer":97}],96:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/ndarray.js":9,"iota-array":98,"is-buffer":99}],98:[function(require,module,exports){
 module.exports=require(10)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/iota-array/iota.js":10}],97:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/iota-array/iota.js":10}],99:[function(require,module,exports){
 module.exports=require(11)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/is-buffer/index.js":11}],98:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/ndarray/node_modules/is-buffer/index.js":11}],100:[function(require,module,exports){
 module.exports=require(12)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/bit-twiddle/twiddle.js":12}],99:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/bit-twiddle/twiddle.js":12}],101:[function(require,module,exports){
 module.exports=require(13)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/dup/dup.js":13}],100:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/node_modules/dup/dup.js":13}],102:[function(require,module,exports){
 module.exports=require(14)
-},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/pool.js":14,"bit-twiddle":98,"buffer":118,"dup":99}],101:[function(require,module,exports){
+},{"/Users/hughsk/src/github.com/hughsk/cap/node_modules/a-big-triangle/node_modules/gl-buffer/node_modules/typedarray-pool/pool.js":14,"bit-twiddle":100,"buffer":120,"dup":101}],103:[function(require,module,exports){
 'use strict'
 
 var ndarray = require('ndarray')
@@ -10431,7 +10504,7 @@ function createTexture2D(gl) {
   throw new Error('gl-texture2d: Invalid arguments for texture2d constructor')
 }
 
-},{"ndarray":95,"ndarray-ops":90,"typedarray-pool":100}],102:[function(require,module,exports){
+},{"ndarray":97,"ndarray-ops":92,"typedarray-pool":102}],104:[function(require,module,exports){
 var normalize = require('vectors/normalize-nd')
 
 module.exports = icosphere
@@ -10578,7 +10651,7 @@ function subdivide(complex) {
   }
 }
 
-},{"vectors/normalize-nd":103}],103:[function(require,module,exports){
+},{"vectors/normalize-nd":105}],105:[function(require,module,exports){
 module.exports = normalize
 
 function normalize(vec) {
@@ -10600,7 +10673,7 @@ function normalize(vec) {
   return vec
 }
 
-},{}],104:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -10611,7 +10684,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],105:[function(require,module,exports){
+},{}],107:[function(require,module,exports){
 var lookAt = require('gl-mat4/lookAt')
 
 module.exports = Camera
@@ -10635,7 +10708,7 @@ Camera.prototype.view = function(view) {
   return view
 }
 
-},{"gl-mat4/lookAt":68}],106:[function(require,module,exports){
+},{"gl-mat4/lookAt":70}],108:[function(require,module,exports){
 
 module.exports = function offset(ev, options) {
     ev = ev || window.event;
@@ -10666,7 +10739,7 @@ function getOffset(element) {
     }
     return tmpRect
 }
-},{}],107:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 var EPSILON = 1e-6;
 
 //Estimate the vertex normals of a mesh
@@ -10787,7 +10860,7 @@ exports.faceNormals = function(faces, positions) {
 
 
 
-},{}],108:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 var resolve = require('soundcloud-resolve')
 var fonts = require('google-fonts')
 var minstache = require('minstache')
@@ -10852,7 +10925,7 @@ function badge(options, callback) {
   return div
 }
 
-},{"fs":117,"google-fonts":109,"insert-css":110,"minstache":111,"soundcloud-resolve":112}],109:[function(require,module,exports){
+},{"fs":119,"google-fonts":111,"insert-css":112,"minstache":113,"soundcloud-resolve":114}],111:[function(require,module,exports){
 module.exports = asString
 module.exports.add = append
 
@@ -10892,7 +10965,7 @@ function makeArray(arr) {
   return Array.isArray(arr) ? arr : [arr]
 }
 
-},{}],110:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 var inserted = [];
 
 module.exports = function (css) {
@@ -10911,7 +10984,7 @@ module.exports = function (css) {
     }
 };
 
-},{}],111:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 
 /**
  * Expose `render()`.`
@@ -11062,7 +11135,7 @@ function escape(html) {
     .replace(/>/g, '&gt;');
 }
 
-},{}],112:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 var qs  = require('querystring')
 var xhr = require('xhr')
 
@@ -11091,7 +11164,7 @@ function resolve(id, goal, callback) {
   })
 }
 
-},{"querystring":124,"xhr":113}],113:[function(require,module,exports){
+},{"querystring":126,"xhr":115}],115:[function(require,module,exports){
 var window = require("global/window")
 var once = require("once")
 
@@ -11197,7 +11270,7 @@ function createXHR(options, callback) {
 
 function noop() {}
 
-},{"global/window":114,"once":115}],114:[function(require,module,exports){
+},{"global/window":116,"once":117}],116:[function(require,module,exports){
 (function (global){
 if (typeof window !== "undefined") {
     module.exports = window
@@ -11208,7 +11281,7 @@ if (typeof window !== "undefined") {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],115:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 module.exports = once
 
 once.proto = once(function () {
@@ -11229,7 +11302,7 @@ function once (fn) {
   }
 }
 
-},{}],116:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 var addEvent = require('add-event-listener')
 var offset = require('mouse-event-offset')
 var Emitter = require('events/')
@@ -11273,9 +11346,9 @@ module.exports = function(opt) {
 module.exports.emitter = function(opt) {
     return attach(opt)
 }
-},{"add-event-listener":21,"events/":25,"mouse-event-offset":106}],117:[function(require,module,exports){
+},{"add-event-listener":21,"events/":25,"mouse-event-offset":108}],119:[function(require,module,exports){
 
-},{}],118:[function(require,module,exports){
+},{}],120:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -12329,7 +12402,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-},{"base64-js":119,"ieee754":120,"is-array":121}],119:[function(require,module,exports){
+},{"base64-js":121,"ieee754":122,"is-array":123}],121:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -12451,7 +12524,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],120:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -12537,7 +12610,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],121:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 
 /**
  * isArray
@@ -12572,7 +12645,7 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}],122:[function(require,module,exports){
+},{}],124:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12658,7 +12731,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],123:[function(require,module,exports){
+},{}],125:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12745,10 +12818,10 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],124:[function(require,module,exports){
+},{}],126:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":122,"./encode":123}]},{},[2]);
+},{"./decode":124,"./encode":125}]},{},[2]);
