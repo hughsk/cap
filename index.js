@@ -1,5 +1,6 @@
 const canvas    = document.body.appendChild(document.createElement('canvas'))
 const gl        = require('gl-context')(canvas, render)
+const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
 const camera    = require('lookat-camera')()
@@ -60,7 +61,7 @@ var camSet = 0
 var camPos = [ [0, 0, 0], [80, 200, 80], [0, 50, 0] ]
 var camTar = [ [0, 0, 0], [0, 40, 0], [0, -300, 0] ]
 
-var movieSel = 1
+var movieSel = 6
 var movieTex = Texture(gl, [2, 2])
 var movies   = [
   'GIF1.webm',
@@ -81,12 +82,12 @@ var movies   = [
   return video
 })
 
-var bel = badge({
-  client_id: 'ded451c6d8f9ff1c62f72523f49dab68',
-  song: 'https://soundcloud.com/djcasket/back-to-the-future-theme-song-casket-remix',
-  dark: false
-}, function(err, src, json) {
-  if (err) throw err
+// var bel = badge({
+//   client_id: 'ded451c6d8f9ff1c62f72523f49dab68',
+//   song: 'https://soundcloud.com/djcasket/back-to-the-future-theme-song-casket-remix',
+//   dark: false
+// }, function(err, src, json) {
+//   if (err) throw err
 
   audio = new Audio
   audio.crossOrigin = 'Anonymous'
@@ -104,7 +105,7 @@ var bel = badge({
   // for (var i = 0; i < np.length; i++) {
   //   np[i].style.color = '#eb3c76'
   // }
-})
+// })
 
 lut.onload = function() {
   textureLut = Texture(gl, lut)
@@ -190,13 +191,17 @@ function render () {
   movieTex.setPixels(movies[movieSel])
 
   post.bind()
-  post.uniforms.data = fbo.color[0].bind(0)
-  post.uniforms.back = movieTex.bind(1)
-  post.uniforms.wave = tidx
-  post.uniforms.time = (Date.now() - start) / 1000
+  console.log(
+  post.uniforms.mouse      = [cursor[0], cursor[1]]
+
+  )
+  post.uniforms.data       = fbo.color[0].bind(0)
+  post.uniforms.back       = movieTex.bind(1)
+  post.uniforms.wave       = tidx
+  post.uniforms.time       = (Date.now() - start) / 1000
   post.uniforms.brightness = brightness
-  post.uniforms.lut = textureLut.bind(2)
-  post.uniforms.useLUT = movieSel >= 5 ? 0.5 : 0
+  post.uniforms.lut        = textureLut.bind(2)
+  post.uniforms.useLUT     = movieSel >= 5 ? 0.5 : 0
   post.uniforms.distortion = movieSel === 5 ? 1 : 0
   triangle(gl)
 }

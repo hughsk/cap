@@ -8,6 +8,7 @@ uniform float useLUT;
 uniform float distortion;
 uniform float brightness;
 uniform float time;
+uniform vec2 mouse;
 varying vec2 uv;
 
 #pragma glslify: analyse = require('gl-audio-analyser')
@@ -30,12 +31,13 @@ vec4 sampleAs3DTexture(sampler2D tex, vec3 texCoord, float size) {
 void main() {
   vec2 vuv = uv;
 
-  vuv.x += distortion * analyse(wave, abs(vuv.y * 2.0 - 1.0)) * 0.01;
+  vuv.x += distortion * analyse(wave, abs(vuv.y * 2.0 - 1.0)) * 0.005;
 
   vec4 inp = texture2D(data, fract(vuv));
-  vec3 bgc = texture2D(back, vec2(0, 1) - fract(vuv * 5. + time * 0.01) * vec2(-1, 1)).rgb;
+  vec2 bgo = mouse;
+  vec3 bgc = texture2D(back, vec2(0, 1) - fract(vuv * 5. + bgo * .001) * vec2(-1, 1)).rgb;
 
-  vec3 inMap  = clamp(brightness + mix(bgc, inp.rgb, inp.a), vec3(0), vec3(1));
+  vec3 inMap  = clamp(mix(bgc, inp.rgb, inp.a) - brightness, vec3(0), vec3(1));
   vec3 outMap = sampleAs3DTexture(lut, inMap, 32.0).rgb;
 
   outMap.g = 1.0 - outMap.g;
