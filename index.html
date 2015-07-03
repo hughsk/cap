@@ -11,6 +11,8 @@
         z-index: 9999;
         cursor: pointer;
         height: 45vh;
+
+        transition: 0.5s opacity;
       }
 
       body {
@@ -18,10 +20,72 @@
         -moz-user-select: none;
         user-select: none;
       }
+
+      .cred {
+        position: absolute;
+        bottom: 1rem; right: -18rem;
+        z-index: 9999;
+        width: 300px;
+        transition: 0.5s 0.5s right;
+      }
+
+      .cred.lauryn {
+        bottom: 4rem;
+        transition: 0.5s 0.75s right;
+      }
+
+      .has-cap .ttfp {
+        opacity: 0;
+      }
+
+      .has-cap .cred {
+        right: 1rem;
+      }
+
+      .cred-text {
+        position: absolute;
+        bottom: 7.2rem;
+        right: 2rem;
+        color: black;
+        text-transform: uppercase;
+        font-family: 'Back to the future 2002', 'Helvetica Neue', Helvetica, Arial;
+        z-index: 999999;
+        opacity: 0;
+        transition: opacity 0.5s;
+        margin: 0;
+      }
+
+      .has-cap .cred-text {
+        opacity: 1;
+      }
+
+      .share {
+        position: absolute;
+        bottom: -8rem; left: 1rem;
+        z-index: 999999;
+        transition: bottom 0.5s;
+        width: 192px;
+      }
+
+      .has-cap .share {
+        bottom: 0rem;
+      }
     </style>
   </head>
-  <body>
+  <body class="has-cap">
     <img class="ttfp" src="ttfp2.gif" alt="" />
+    <p class="cred-text">
+      Made By
+    </p>
+    <a target="_blank" href="https://twitter.com/intent/tweet?text=The%20past%20is%20the%20future%20and%20it%E2%80%99s%20BACK.%20http%3A%2F%2Ffuturetotheback.fashion%2F">
+      <img class="share" src="tweeter.gif" alt="" />
+    </a>
+    <a target="_blank" href="http://hughsk.io">
+      <img class="cred hugh" src="cred_hugh.png" alt="" />
+    </a>
+    <a target="_blank" href="http://www.flockofsiegel.tv/">
+      <img class="cred lauryn" src="cred_lauryn.png" alt="" />
+    </a>
     <script type="text/javascript" src="bundle.js"></script>
   </body>
 </html>

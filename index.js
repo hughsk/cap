@@ -60,6 +60,7 @@ var camSpd = 0
 var camSet = 0
 var camPos = [ [0, 0, 0], [80, 200, 80], [0, 50, 0] ]
 var camTar = [ [0, 0, 0], [0, 40, 0], [0, -300, 0] ]
+var ttfp   = document.querySelector('.ttfp')
 
 var movieSel = 6
 var movieTex = Texture(gl, [2, 2])
@@ -128,6 +129,12 @@ lut.src = 'lut.png'
 canvas.style.cursor = 'pointer'
 window.addEventListener('click', function() {
   movieSel = (movieSel + 1) % movies.length
+
+  if (movieSel === 5) {
+    document.body.classList.add('has-cap')
+  } else {
+    document.body.classList.remove('has-cap')
+  }
 }, false)
 
 function render () {
@@ -199,10 +206,10 @@ function render () {
   post.uniforms.back       = movieTex.bind(1)
   post.uniforms.wave       = tidx
   post.uniforms.time       = (Date.now() - start) / 1000
-  post.uniforms.brightness = brightness
   post.uniforms.lut        = textureLut.bind(2)
   post.uniforms.useLUT     = movieSel >= 5 ? 0.5 : 0
   post.uniforms.distortion = movieSel === 5 ? 1 : 0
+  post.uniforms.brightness = brightness
   triangle(gl)
 }
 
