@@ -1,5 +1,7 @@
+(function() {
+
 const canvas    = document.body.appendChild(document.createElement('canvas'))
-const gl        = require('gl-context')(canvas, render)
+const gl        = false // require('gl-context')(canvas, render)
 const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
@@ -8,6 +10,7 @@ const triangle  = require('a-big-triangle')
 const Texture   = require('gl-texture2d')
 const Geom      = require('gl-geometry')
 const model     = require('./cap.json')
+const cl        = require('class-list')
 const eye       = require('eye-vector')
 const icosphere = require('icosphere')
 const Shader    = require('gl-shader')
@@ -15,6 +18,10 @@ const mat4      = require('gl-mat4')
 const glslify   = require('glslify')
 const normals   = require('normals')
 const FBO       = require('gl-fbo')
+
+if (!gl) {
+  return cl(document.body).add('nowebgl')
+}
 
 const sphere = scale(icosphere(3))
 
@@ -234,3 +241,5 @@ function scale(mesh) {
 
   return mesh
 }
+
+})()

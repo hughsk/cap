@@ -15,6 +15,7 @@
     "bunny": "^1.0.1",
     "canvas-fit": "^1.4.0",
     "canvas-orbit-camera": "^1.0.2",
+    "class-list": "^0.1.1",
     "eye-vector": "0.0.0",
     "gl-audio-analyser": "^1.0.0",
     "gl-context": "^0.1.1",
