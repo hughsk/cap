@@ -6,6 +6,7 @@ const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
 const camera    = require('lookat-camera')()
+const Touch     = require('touch-position')
 const triangle  = require('a-big-triangle')
 const Texture   = require('gl-texture2d')
 const Geom      = require('gl-geometry')
@@ -23,6 +24,7 @@ if (!gl) {
   return cl(document.body).add('nowebgl')
 }
 
+const touch = Touch()
 const sphere = scale(icosphere(3))
 
 sphere.normals = normals.vertexNormals(sphere.cells, sphere.positions)
@@ -152,6 +154,8 @@ function render () {
 
   const width  = gl.drawingBufferWidth
   const height = gl.drawingBufferHeight
+  const tx = (touch[0] / width) * 2 - 1
+  const ty = (touch[1] / height) * 2 - 1
 
   fbo.bind()
   fbo.shape = [width, height]
@@ -167,8 +171,8 @@ function render () {
   brightness += ((movieSel === 6 ? 1 : 0) - brightness) * 0.065
   camSpd = movieSel === 6 ? 0.035 : 0.015
   camSet = movieSel === 5 ? 1 : movieSel === 6 ? 2 : 0
-  camera.position[0] += (camPos[camSet][0] - camera.position[0]) * camSpd
-  camera.position[1] += (camPos[camSet][1] - camera.position[1]) * camSpd
+  camera.position[0] += ((camPos[camSet][0] + tx * 250) - camera.position[0]) * camSpd
+  camera.position[1] += ((camPos[camSet][1] + ty * 250) - camera.position[1]) * camSpd
   camera.position[2] += (camPos[camSet][2] - camera.position[2]) * camSpd
 
   camera.target[0] += (camTar[camSet][0] - camera.target[0]) * camSpd
@@ -205,10 +209,7 @@ function render () {
   movieTex.setPixels(movies[movieSel])
 
   post.bind()
-  console.log(
   post.uniforms.mouse      = [cursor[0], cursor[1]]
-
-  )
   post.uniforms.data       = fbo.color[0].bind(0)
   post.uniforms.back       = movieTex.bind(1)
   post.uniforms.wave       = tidx
