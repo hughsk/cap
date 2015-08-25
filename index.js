@@ -205,8 +205,8 @@ function render () {
 
   start += Math.pow(analyser.frequencies()[25], 3) * 0.0001
 
+  geom.bind(shader)
   if (movieSel >= 5) {
-    geom.bind(shader)
     shader.uniforms.proj  = proj
     shader.uniforms.view  = view
     shader.uniforms.eye   = eyev
