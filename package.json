@@ -2,7 +2,7 @@
   "name": "cap",
   "version": "1.0.0",
   "scripts": {
-    "rebuild": "browserify index.js -o bundle.js",
+    "rebuild": "browserify index.js | uglifyjs -cm > bundle.js",
     "start": "budo index.js:bundle.js"
   },
   "browserify": {
@@ -40,6 +40,7 @@
     "touch-position": "^1.0.3"
   },
   "devDependencies": {
-    "budo": "^4.0.0"
+    "budo": "^4.0.0",
+    "uglify-js": "^2.4.24"
   }
 }
