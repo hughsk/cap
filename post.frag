@@ -30,8 +30,9 @@ vec4 sampleAs3DTexture(sampler2D tex, vec3 texCoord, float size) {
 
 void main() {
   vec2 vuv = uv;
+  float a = texture2D(data, fract(vuv)).a;
 
-  vuv.x += distortion * analyse(wave, abs(vuv.y * 2.0 - 1.0)) * 0.005;
+  vuv.x += (1.0 - a) * distortion * analyse(wave, abs(vuv.y * 2.0 - 1.0)) * 0.005;
 
   vec4 inp = texture2D(data, fract(vuv));
   vec2 bgo = mouse;
