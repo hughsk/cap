@@ -19,6 +19,7 @@
       }
 
       body {
+        background: #000;
         overflow: hidden;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -86,6 +87,47 @@
       .nowebgl .ttfp {
         display: none;
       }
+
+      .back,
+      .mute {
+        font-family: 'Back to the future 2002', 'Helvetica Neue', Helvetica, Arial;
+        position: absolute;
+        top: 2rem;
+        font-size: 1.5rem;
+        color: #000;
+        z-index: 999999;
+      }
+
+      .mute,
+      .back,
+      .cred-text {
+        text-shadow: 0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff,
+                     0 0 2px #fff;
+      }
+
+      .back {
+        transition: right 0.5s 1s;
+        right: -10rem;
+      }
+      .has-cap .back {
+        right: 2rem;
+        text-align: right;
+      }
+
+      .mute {
+        left: 2rem;
+      }
+      .mute.enabled {
+        text-decoration: line-through;
+      }
     </style>
   </head>
   <body>
@@ -96,6 +138,8 @@
     <a target="_blank" href="https://twitter.com/intent/tweet?text=The%20past%20is%20the%20future%20and%20it%E2%80%99s%20BACK.%20http%3A%2F%2Ffuturetotheback.fashion%2F">
       <img class="share" src="tweeter.gif" alt="" />
     </a>
+    <div class="mute">MUTE</div>
+    <div class="back">BACK</div>
     <a target="_blank" href="http://hughsk.io">
       <img class="cred hugh" src="cred_hugh.png" alt="" />
     </a>

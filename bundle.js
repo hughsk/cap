@@ -9,6 +9,7 @@ const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
 const camera    = require('lookat-camera')()
+const findup    = require('findup-element')
 const Touch     = require('touch-position')
 const triangle  = require('a-big-triangle')
 const Texture   = require('gl-texture2d')
@@ -56,7 +57,7 @@ var start = Date.now()
 
 const shader = Shader(gl
   , "#define GLSLIFY 1\n\nprecision mediump float;\n\nuniform sampler2D wave;\nattribute vec3 position;\nattribute vec3 normal;\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform mat4 proj;\nuniform mat4 view;\n\nfloat glAudioAnalyser_1_0(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\n\nvoid main() {\n  vnormal = normal;\n  vpos = position;\n\n  float off = glAudioAnalyser_1_0(wave, fract(length(vpos * 0.03125)));\n  vpos += vnormal * off * 0.5;\n\n  gl_Position = proj * view * vec4(position + off * vnormal * 0.5, 1);\n}\n"
-  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform float time;\nuniform mat4 proj;\nuniform mat4 view;\nuniform vec3 eye;\n\nuniform sampler2D grad;\nuniform sampler2D grime;\nuniform sampler2D wave;\n\n#define ptpi 1385.4557313670110891409199368797 //powten(pi)\n#define pipi  36.462159607207911770990826022692 //pi pied, pi^pi\n#define picu  31.006276680299820175476315067101 //pi cubed, pi^3\n#define pepi  23.140692632779269005729086367949 //powe(pi);\n#define chpi  11.59195327552152062775175205256  //cosh(pi)\n#define shpi  11.548739357257748377977334315388 //sinh(pi)\n#define pisq  9.8696044010893586188344909998762 //pi squared, pi^2\n#define twpi  6.283185307179586476925286766559  //two pi, 2*pi\n#define pi    3.1415926535897932384626433832795 //pi\n#define e     2.7182818284590452353602874713526 //eulers number\n#define sqpi  1.7724538509055160272981674833411 //square root of pi\n#define phi   1.6180339887498948482045868343656 //golden ratio\n#define hfpi  1.5707963267948966192313216916398 //half pi, 1/pi\n#define cupi  1.4645918875615232630201425272638 //cube root of pi\n#define prpi  1.4396194958475906883364908049738 //pi root of pi\n#define lnpi  1.1447298858494001741434273513531 //logn(pi);\n#define trpi  1.0471975511965977461542144610932 //one third of pi, pi/3\n#define thpi  0.99627207622074994426469058001254//tanh(pi)\n#define lgpi  0.4971498726941338543512682882909 //log(pi)\n#define rcpi  0.31830988618379067153776752674503// reciprocal of pi  , 1/pi\n#define rcpipi  0.0274256931232981061195562708591 // reciprocal of pipi  , 1/pipi\n\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec4 mod289_1_0(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nfloat mod289_1_0(float x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nvec4 permute_1_1(vec4 x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nfloat permute_1_1(float x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt_1_2(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat taylorInvSqrt_1_2(float r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec4 grad4_1_3(float j, vec4 ip)\n  {\n  const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);\n  vec4 p,s;\n\n  p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;\n  p.w = 1.5 - dot(abs(p.xyz), ones.xyz);\n  s = vec4(lessThan(p, vec4(0.0)));\n  p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;\n\n  return p;\n  }\n\n// (sqrt(5) - 1)/4 = F4, used once below\n#define F4 0.309016994374947451\n\nfloat snoise_1_4(vec4 v)\n  {\n  const vec4  C = vec4( 0.138196601125011,  // (5 - sqrt(5))/20  G4\n                        0.276393202250021,  // 2 * G4\n                        0.414589803375032,  // 3 * G4\n                       -0.447213595499958); // -1 + 4 * G4\n\n// First corner\n  vec4 i  = floor(v + dot(v, vec4(F4)) );\n  vec4 x0 = v -   i + dot(i, C.xxxx);\n\n// Other corners\n\n// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)\n  vec4 i0;\n  vec3 isX = step( x0.yzw, x0.xxx );\n  vec3 isYZ = step( x0.zww, x0.yyz );\n//  i0.x = dot( isX, vec3( 1.0 ) );\n  i0.x = isX.x + isX.y + isX.z;\n  i0.yzw = 1.0 - isX;\n//  i0.y += dot( isYZ.xy, vec2( 1.0 ) );\n  i0.y += isYZ.x + isYZ.y;\n  i0.zw += 1.0 - isYZ.xy;\n  i0.z += isYZ.z;\n  i0.w += 1.0 - isYZ.z;\n\n  // i0 now contains the unique values 0,1,2,3 in each channel\n  vec4 i3 = clamp( i0, 0.0, 1.0 );\n  vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );\n  vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );\n\n  //  x0 = x0 - 0.0 + 0.0 * C.xxxx\n  //  x1 = x0 - i1  + 1.0 * C.xxxx\n  //  x2 = x0 - i2  + 2.0 * C.xxxx\n  //  x3 = x0 - i3  + 3.0 * C.xxxx\n  //  x4 = x0 - 1.0 + 4.0 * C.xxxx\n  vec4 x1 = x0 - i1 + C.xxxx;\n  vec4 x2 = x0 - i2 + C.yyyy;\n  vec4 x3 = x0 - i3 + C.zzzz;\n  vec4 x4 = x0 + C.wwww;\n\n// Permutations\n  i = mod289_1_0(i);\n  float j0 = permute_1_1( permute_1_1( permute_1_1( permute_1_1(i.w) + i.z) + i.y) + i.x);\n  vec4 j1 = permute_1_1( permute_1_1( permute_1_1( permute_1_1 (\n             i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))\n           + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))\n           + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))\n           + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));\n\n// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope\n// 7*7*6 = 294, which is close to the ring size 17*17 = 289.\n  vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;\n\n  vec4 p0_1_5 = grad4_1_3(j0,   ip);\n  vec4 p1 = grad4_1_3(j1.x, ip);\n  vec4 p2 = grad4_1_3(j1.y, ip);\n  vec4 p3 = grad4_1_3(j1.z, ip);\n  vec4 p4 = grad4_1_3(j1.w, ip);\n\n// Normalise gradients\n  vec4 norm = taylorInvSqrt_1_2(vec4(dot(p0_1_5,p0_1_5), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0_1_5 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n  p4 *= taylorInvSqrt_1_2(dot(p4,p4));\n\n// Mix contributions from the five corners\n  vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);\n  vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);\n  m0 = m0 * m0;\n  m1 = m1 * m1;\n  return 49.0 * ( dot(m0*m0, vec3( dot( p0_1_5, x0 ), dot( p1, x1 ), dot( p2, x2 )))\n               + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;\n\n  }\n\n\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289_2_6(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289_2_6(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute_2_7(vec3 x) {\n  return mod289_2_6(((x*34.0)+1.0)*x);\n}\n\nfloat snoise_2_8(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289_2_6(i); // Avoid truncation effects in permutation\n  vec3 p = permute_2_7( permute_2_7( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\n\n\nfloat beckmannDistribution_8_9(float x, float roughness) {\n  float NdotH = max(x, 0.0001);\n  float cos2Alpha = NdotH * NdotH;\n  float tan2Alpha = (cos2Alpha - 1.0) / cos2Alpha;\n  float roughness2 = roughness * roughness;\n  float denom = 3.141592653589793 * roughness2 * cos2Alpha * cos2Alpha;\n  return exp(tan2Alpha / roughness2) / denom;\n}\n\n\n\nfloat cookTorranceSpecular_3_10(\n  vec3 lightDirection,\n  vec3 viewDirection,\n  vec3 surfaceNormal,\n  float roughness,\n  float fresnel) {\n\n  float VdotN = max(dot(viewDirection, surfaceNormal), 0.0);\n  float LdotN = max(dot(lightDirection, surfaceNormal), 0.0);\n\n  //Half angle vector\n  vec3 H = normalize(lightDirection + viewDirection);\n\n  //Geometric term\n  float NdotH = max(dot(surfaceNormal, H), 0.0);\n  float VdotH = max(dot(viewDirection, H), 0.000001);\n  float LdotH = max(dot(lightDirection, H), 0.000001);\n  float G1 = (2.0 * NdotH * VdotN) / VdotH;\n  float G2 = (2.0 * NdotH * LdotN) / LdotH;\n  float G = min(1.0, min(G1, G2));\n  \n  //Distribution term\n  float D = beckmannDistribution_8_9(NdotH, roughness);\n\n  //Fresnel term\n  float F = pow(1.0 - VdotN, fresnel);\n\n  //Multiply terms and done\n  return  G * F * D / max(3.14159265 * VdotN, 0.000001);\n}\n\n\nfloat glAudioAnalyser_4_11(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\nvec3 hsv2rgb_5_12(vec3 c) {\n  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\n\n\nfloat hue2rgb_7_13(float f1, float f2, float hue) {\n    if (hue < 0.0)\n        hue += 1.0;\n    else if (hue > 1.0)\n        hue -= 1.0;\n    float res;\n    if ((6.0 * hue) < 1.0)\n        res = f1 + (f2 - f1) * 6.0 * hue;\n    else if ((2.0 * hue) < 1.0)\n        res = f2;\n    else if ((3.0 * hue) < 2.0)\n        res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;\n    else\n        res = f1;\n    return res;\n}\n\nvec3 hsl2rgb_7_14(vec3 hsl) {\n    vec3 rgb;\n    \n    if (hsl.y == 0.0) {\n        rgb = vec3(hsl.z); // Luminance\n    } else {\n        float f2;\n        \n        if (hsl.z < 0.5)\n            f2 = hsl.z * (1.0 + hsl.y);\n        else\n            f2 = hsl.z + hsl.y - hsl.y * hsl.z;\n            \n        float f1 = 2.0 * hsl.z - f2;\n        \n        rgb.r = hue2rgb_7_13(f1, f2, hsl.x + (1.0/3.0));\n        rgb.g = hue2rgb_7_13(f1, f2, hsl.x);\n        rgb.b = hue2rgb_7_13(f1, f2, hsl.x - (1.0/3.0));\n    }   \n    return rgb;\n}\n\nvec3 hsl2rgb_7_14(float h, float s, float l) {\n    return hsl2rgb_7_14(vec3(h, s, l));\n}\n\n\nfloat fogFactorExp2_6_15(\n  const float dist,\n  const float density\n) {\n  const float LOG2 = -1.442695;\n  float d = density * dist;\n  return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);\n}\n\n\n\n\nvec3 rotate(vec3 vec, vec3 axis, float ang)\n{\n    return vec * cos(ang) + cross(axis, vec) * sin(ang) + axis * dot(axis, vec) * (1.0 - cos(ang));\n}\n\nvec3 pin(vec3 v)\n{\n    vec3 q = vec3(0.0);\n\n    q.x += sin(v.x)*0.5+0.5;\n    q.y += sin(v.y+0.66666667*pi)*0.5+0.5;\n    q.z += sin(v.z+1.33333333*pi)*0.5+0.5;\n\n    return (q);\n}\n\nvec3 spin(vec3 v)\n{\n    for(int i = 1; i <3; i++)\n    {\n        v=pin(rotate((v),pin(v),float(i*i)))*e;\n    }\n    return (v.xyz);\n}\n\nvec3 fin(vec3 v){\n\n\tvec4 vt = vec4(v,(v.x+v.y+v.z)/pi);\n\tvec4 vs = vt;\n\tvt.xyz  += pin(vs.xyz);\n\tvt.xyz  += pin(vs.yzw);\n\tvt.xyz  += pin(vs.zwx);\n\tvt.xyz  += pin(vs.wxy);\n\treturn spin(vt.xyz/pisq);\n}\n\n\nvec3 sfin(vec3 v)\n{\n    for(int i = 1; i < 5; i++)\n    {\n        v =(v+fin(v*float(i)));\n    }\n    return (normalize((pin(v.zxy)))+(spin(v.zxy*rcpi)));\n}\n\nvoid main() {\n  float r = snoise_1_4(vec4(vpos * 0.05 * vec3(1, 1, 0.25) + 2023.0, time)) * 1.0\n          + snoise_1_4(vec4(vpos * 0.08 + 1023.0, time)) * 0.5;\n\n  float t = time * 0.01;\n\n  r /= 1.5;\n  // float g = noise(vec4(vpos * 0.01 + 5023.0, time)) + noise(vec4(vpos * 0.02 + 3023.0, time));\n  // float b = noise(vec4(vpos * 0.01 + 3023.0, time)) + noise(vec4(vpos * 0.02 + 4023.0, time));\n\n  vec3 ridges = sin(vpos * 30.0);\n  vec3 normal = normalize(vnormal + ridges * 0.03);\n  vec3 vdir = normalize(eye - vpos);\n  vec3 ldir = normalize(vec3(0, 1, 0));\n  vec3 grimeCol1 = texture2D(grime, vpos.xz * 2.5 + vec2(5.1)).rgb;\n  vec3 grimeCol2 = texture2D(grime, vpos.xz * 0.005 + vec2(5.1)).rgb;\n\n  vec3 mat = hsl2rgb_7_14(r * 0.5 + 0.5, 0.1, 0.25) * pow(1.0 - grimeCol1, vec3(2.0));\n\n  float dif  = max(0.0, dot(ldir, normal)) * 0.5 + 0.1;\n  float spec = cookTorranceSpecular_3_10(ldir, vdir, normal, 1.9, 0.0);\n  vec3 color = mix(0.7, 1.0, length(ridges * 0.5 + 0.5)) * dif * mat + spec * 2.0;\n\n  vec3 spos = vpos + vec3(0, 1, 0) * snoise_2_8(vec2(vpos.x, 0.5)) * 0.5;\n  float lut = (sfin((spos * 0.03+sin(t/pi)*twpi)*pi)*dif).r;\n\n  color = mix(color, texture2D(grad, vec2(lut)).rgb+spec, 0.6);\n  color *= mix(vec3(0.8), vec3(1.1), grimeCol2);\n  color = mix(color, vec3(1.0), fogFactorExp2_6_15(length(eye - vpos), 0.0015));\n\n  // float amp = analyse(wave, fract(length(vpos)));\n\n  gl_FragColor = vec4(color, 1);\n}\n"
+  , "#define GLSLIFY 1\n\nprecision mediump float;\n\nvarying vec3 vnormal;\nvarying vec3 vpos;\nuniform float time;\nuniform mat4 proj;\nuniform mat4 view;\nuniform vec3 eye;\n\nuniform sampler2D grad;\nuniform sampler2D grime;\nuniform sampler2D wave;\n\n#define ptpi 1385.4557313670110891409199368797 //powten(pi)\n#define pipi  36.462159607207911770990826022692 //pi pied, pi^pi\n#define picu  31.006276680299820175476315067101 //pi cubed, pi^3\n#define pepi  23.140692632779269005729086367949 //powe(pi);\n#define chpi  11.59195327552152062775175205256  //cosh(pi)\n#define shpi  11.548739357257748377977334315388 //sinh(pi)\n#define pisq  9.8696044010893586188344909998762 //pi squared, pi^2\n#define twpi  6.283185307179586476925286766559  //two pi, 2*pi\n#define pi    3.1415926535897932384626433832795 //pi\n#define e     2.7182818284590452353602874713526 //eulers number\n#define sqpi  1.7724538509055160272981674833411 //square root of pi\n#define phi   1.6180339887498948482045868343656 //golden ratio\n#define hfpi  1.5707963267948966192313216916398 //half pi, 1/pi\n#define cupi  1.4645918875615232630201425272638 //cube root of pi\n#define prpi  1.4396194958475906883364908049738 //pi root of pi\n#define lnpi  1.1447298858494001741434273513531 //logn(pi);\n#define trpi  1.0471975511965977461542144610932 //one third of pi, pi/3\n#define thpi  0.99627207622074994426469058001254//tanh(pi)\n#define lgpi  0.4971498726941338543512682882909 //log(pi)\n#define rcpi  0.31830988618379067153776752674503// reciprocal of pi  , 1/pi\n#define rcpipi  0.0274256931232981061195562708591 // reciprocal of pipi  , 1/pipi\n\n//\n// Description : Array and textureless GLSL 2D/3D/4D simplex\n//               noise functions.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec4 mod289_1_0(vec4 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nfloat mod289_1_0(float x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0; }\n\nvec4 permute_1_1(vec4 x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nfloat permute_1_1(float x) {\n     return mod289_1_0(((x*34.0)+1.0)*x);\n}\n\nvec4 taylorInvSqrt_1_2(vec4 r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nfloat taylorInvSqrt_1_2(float r)\n{\n  return 1.79284291400159 - 0.85373472095314 * r;\n}\n\nvec4 grad4_1_3(float j, vec4 ip)\n  {\n  const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);\n  vec4 p,s;\n\n  p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;\n  p.w = 1.5 - dot(abs(p.xyz), ones.xyz);\n  s = vec4(lessThan(p, vec4(0.0)));\n  p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;\n\n  return p;\n  }\n\n// (sqrt(5) - 1)/4 = F4, used once below\n#define F4 0.309016994374947451\n\nfloat snoise_1_4(vec4 v)\n  {\n  const vec4  C = vec4( 0.138196601125011,  // (5 - sqrt(5))/20  G4\n                        0.276393202250021,  // 2 * G4\n                        0.414589803375032,  // 3 * G4\n                       -0.447213595499958); // -1 + 4 * G4\n\n// First corner\n  vec4 i  = floor(v + dot(v, vec4(F4)) );\n  vec4 x0 = v -   i + dot(i, C.xxxx);\n\n// Other corners\n\n// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)\n  vec4 i0;\n  vec3 isX = step( x0.yzw, x0.xxx );\n  vec3 isYZ = step( x0.zww, x0.yyz );\n//  i0.x = dot( isX, vec3( 1.0 ) );\n  i0.x = isX.x + isX.y + isX.z;\n  i0.yzw = 1.0 - isX;\n//  i0.y += dot( isYZ.xy, vec2( 1.0 ) );\n  i0.y += isYZ.x + isYZ.y;\n  i0.zw += 1.0 - isYZ.xy;\n  i0.z += isYZ.z;\n  i0.w += 1.0 - isYZ.z;\n\n  // i0 now contains the unique values 0,1,2,3 in each channel\n  vec4 i3 = clamp( i0, 0.0, 1.0 );\n  vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );\n  vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );\n\n  //  x0 = x0 - 0.0 + 0.0 * C.xxxx\n  //  x1 = x0 - i1  + 1.0 * C.xxxx\n  //  x2 = x0 - i2  + 2.0 * C.xxxx\n  //  x3 = x0 - i3  + 3.0 * C.xxxx\n  //  x4 = x0 - 1.0 + 4.0 * C.xxxx\n  vec4 x1 = x0 - i1 + C.xxxx;\n  vec4 x2 = x0 - i2 + C.yyyy;\n  vec4 x3 = x0 - i3 + C.zzzz;\n  vec4 x4 = x0 + C.wwww;\n\n// Permutations\n  i = mod289_1_0(i);\n  float j0 = permute_1_1( permute_1_1( permute_1_1( permute_1_1(i.w) + i.z) + i.y) + i.x);\n  vec4 j1 = permute_1_1( permute_1_1( permute_1_1( permute_1_1 (\n             i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))\n           + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))\n           + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))\n           + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));\n\n// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope\n// 7*7*6 = 294, which is close to the ring size 17*17 = 289.\n  vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;\n\n  vec4 p0_1_5 = grad4_1_3(j0,   ip);\n  vec4 p1 = grad4_1_3(j1.x, ip);\n  vec4 p2 = grad4_1_3(j1.y, ip);\n  vec4 p3 = grad4_1_3(j1.z, ip);\n  vec4 p4 = grad4_1_3(j1.w, ip);\n\n// Normalise gradients\n  vec4 norm = taylorInvSqrt_1_2(vec4(dot(p0_1_5,p0_1_5), dot(p1,p1), dot(p2, p2), dot(p3,p3)));\n  p0_1_5 *= norm.x;\n  p1 *= norm.y;\n  p2 *= norm.z;\n  p3 *= norm.w;\n  p4 *= taylorInvSqrt_1_2(dot(p4,p4));\n\n// Mix contributions from the five corners\n  vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);\n  vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);\n  m0 = m0 * m0;\n  m1 = m1 * m1;\n  return 49.0 * ( dot(m0*m0, vec3( dot( p0_1_5, x0 ), dot( p1, x1 ), dot( p2, x2 )))\n               + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;\n\n  }\n\n\n\n//\n// Description : Array and textureless GLSL 2D simplex noise function.\n//      Author : Ian McEwan, Ashima Arts.\n//  Maintainer : ijm\n//     Lastmod : 20110822 (ijm)\n//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.\n//               Distributed under the MIT License. See LICENSE file.\n//               https://github.com/ashima/webgl-noise\n//\n\nvec3 mod289_2_6(vec3 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec2 mod289_2_6(vec2 x) {\n  return x - floor(x * (1.0 / 289.0)) * 289.0;\n}\n\nvec3 permute_2_7(vec3 x) {\n  return mod289_2_6(((x*34.0)+1.0)*x);\n}\n\nfloat snoise_2_8(vec2 v)\n  {\n  const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0\n                      0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)\n                     -0.577350269189626,  // -1.0 + 2.0 * C.x\n                      0.024390243902439); // 1.0 / 41.0\n// First corner\n  vec2 i  = floor(v + dot(v, C.yy) );\n  vec2 x0 = v -   i + dot(i, C.xx);\n\n// Other corners\n  vec2 i1;\n  //i1.x = step( x0.y, x0.x ); // x0.x > x0.y ? 1.0 : 0.0\n  //i1.y = 1.0 - i1.x;\n  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);\n  // x0 = x0 - 0.0 + 0.0 * C.xx ;\n  // x1 = x0 - i1 + 1.0 * C.xx ;\n  // x2 = x0 - 1.0 + 2.0 * C.xx ;\n  vec4 x12 = x0.xyxy + C.xxzz;\n  x12.xy -= i1;\n\n// Permutations\n  i = mod289_2_6(i); // Avoid truncation effects in permutation\n  vec3 p = permute_2_7( permute_2_7( i.y + vec3(0.0, i1.y, 1.0 ))\n    + i.x + vec3(0.0, i1.x, 1.0 ));\n\n  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);\n  m = m*m ;\n  m = m*m ;\n\n// Gradients: 41 points uniformly over a line, mapped onto a diamond.\n// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)\n\n  vec3 x = 2.0 * fract(p * C.www) - 1.0;\n  vec3 h = abs(x) - 0.5;\n  vec3 ox = floor(x + 0.5);\n  vec3 a0 = x - ox;\n\n// Normalise gradients implicitly by scaling m\n// Approximation of: m *= inversesqrt( a0*a0 + h*h );\n  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );\n\n// Compute final noise value at P\n  vec3 g;\n  g.x  = a0.x  * x0.x  + h.x  * x0.y;\n  g.yz = a0.yz * x12.xz + h.yz * x12.yw;\n  return 130.0 * dot(m, g);\n}\n\n\n\nfloat beckmannDistribution_8_9(float x, float roughness) {\n  float NdotH = max(x, 0.0001);\n  float cos2Alpha = NdotH * NdotH;\n  float tan2Alpha = (cos2Alpha - 1.0) / cos2Alpha;\n  float roughness2 = roughness * roughness;\n  float denom = 3.141592653589793 * roughness2 * cos2Alpha * cos2Alpha;\n  return exp(tan2Alpha / roughness2) / denom;\n}\n\n\n\nfloat cookTorranceSpecular_4_10(\n  vec3 lightDirection,\n  vec3 viewDirection,\n  vec3 surfaceNormal,\n  float roughness,\n  float fresnel) {\n\n  float VdotN = max(dot(viewDirection, surfaceNormal), 0.0);\n  float LdotN = max(dot(lightDirection, surfaceNormal), 0.0);\n\n  //Half angle vector\n  vec3 H = normalize(lightDirection + viewDirection);\n\n  //Geometric term\n  float NdotH = max(dot(surfaceNormal, H), 0.0);\n  float VdotH = max(dot(viewDirection, H), 0.000001);\n  float LdotH = max(dot(lightDirection, H), 0.000001);\n  float G1 = (2.0 * NdotH * VdotN) / VdotH;\n  float G2 = (2.0 * NdotH * LdotN) / LdotH;\n  float G = min(1.0, min(G1, G2));\n  \n  //Distribution term\n  float D = beckmannDistribution_8_9(NdotH, roughness);\n\n  //Fresnel term\n  float F = pow(1.0 - VdotN, fresnel);\n\n  //Multiply terms and done\n  return  G * F * D / max(3.14159265 * VdotN, 0.000001);\n}\n\n\nfloat glAudioAnalyser_3_11(sampler2D audioData, float audioIndex) {\n  return texture2D(audioData, vec2(audioIndex, 0.5)).r;\n}\n\n\n\nvec3 hsv2rgb_6_12(vec3 c) {\n  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n}\n\n\n\nfloat hue2rgb_5_13(float f1, float f2, float hue) {\n    if (hue < 0.0)\n        hue += 1.0;\n    else if (hue > 1.0)\n        hue -= 1.0;\n    float res;\n    if ((6.0 * hue) < 1.0)\n        res = f1 + (f2 - f1) * 6.0 * hue;\n    else if ((2.0 * hue) < 1.0)\n        res = f2;\n    else if ((3.0 * hue) < 2.0)\n        res = f1 + (f2 - f1) * ((2.0 / 3.0) - hue) * 6.0;\n    else\n        res = f1;\n    return res;\n}\n\nvec3 hsl2rgb_5_14(vec3 hsl) {\n    vec3 rgb;\n    \n    if (hsl.y == 0.0) {\n        rgb = vec3(hsl.z); // Luminance\n    } else {\n        float f2;\n        \n        if (hsl.z < 0.5)\n            f2 = hsl.z * (1.0 + hsl.y);\n        else\n            f2 = hsl.z + hsl.y - hsl.y * hsl.z;\n            \n        float f1 = 2.0 * hsl.z - f2;\n        \n        rgb.r = hue2rgb_5_13(f1, f2, hsl.x + (1.0/3.0));\n        rgb.g = hue2rgb_5_13(f1, f2, hsl.x);\n        rgb.b = hue2rgb_5_13(f1, f2, hsl.x - (1.0/3.0));\n    }   \n    return rgb;\n}\n\nvec3 hsl2rgb_5_14(float h, float s, float l) {\n    return hsl2rgb_5_14(vec3(h, s, l));\n}\n\n\nfloat fogFactorExp2_7_15(\n  const float dist,\n  const float density\n) {\n  const float LOG2 = -1.442695;\n  float d = density * dist;\n  return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);\n}\n\n\n\n\nvec3 rotate(vec3 vec, vec3 axis, float ang)\n{\n    return vec * cos(ang) + cross(axis, vec) * sin(ang) + axis * dot(axis, vec) * (1.0 - cos(ang));\n}\n\nvec3 pin(vec3 v)\n{\n    vec3 q = vec3(0.0);\n\n    q.x += sin(v.x)*0.5+0.5;\n    q.y += sin(v.y+0.66666667*pi)*0.5+0.5;\n    q.z += sin(v.z+1.33333333*pi)*0.5+0.5;\n\n    return (q);\n}\n\nvec3 spin(vec3 v)\n{\n    for(int i = 1; i <3; i++)\n    {\n        v=pin(rotate((v),pin(v),float(i*i)))*e;\n    }\n    return (v.xyz);\n}\n\nvec3 fin(vec3 v){\n\n\tvec4 vt = vec4(v,(v.x+v.y+v.z)/pi);\n\tvec4 vs = vt;\n\tvt.xyz  += pin(vs.xyz);\n\tvt.xyz  += pin(vs.yzw);\n\tvt.xyz  += pin(vs.zwx);\n\tvt.xyz  += pin(vs.wxy);\n\treturn spin(vt.xyz/pisq);\n}\n\n\nvec3 sfin(vec3 v)\n{\n    for(int i = 1; i < 5; i++)\n    {\n        v =(v+fin(v*float(i)));\n    }\n    return (normalize((pin(v.zxy)))+(spin(v.zxy*rcpi)));\n}\n\nvoid main() {\n  float r = snoise_1_4(vec4(vpos * 0.05 * vec3(1, 1, 0.25) + 2023.0, time)) * 1.0\n          + snoise_1_4(vec4(vpos * 0.08 + 1023.0, time)) * 0.5;\n\n  float t = time * 0.01;\n\n  r /= 1.5;\n  // float g = noise(vec4(vpos * 0.01 + 5023.0, time)) + noise(vec4(vpos * 0.02 + 3023.0, time));\n  // float b = noise(vec4(vpos * 0.01 + 3023.0, time)) + noise(vec4(vpos * 0.02 + 4023.0, time));\n\n  vec3 ridges = sin(vpos * 30.0);\n  vec3 normal = normalize(vnormal + ridges * 0.03);\n  vec3 vdir = normalize(eye - vpos);\n  vec3 ldir = normalize(vec3(0, 1, 0));\n  vec3 grimeCol1 = texture2D(grime, vpos.xz * 2.5 + vec2(5.1)).rgb;\n  vec3 grimeCol2 = texture2D(grime, vpos.xz * 0.005 + vec2(5.1)).rgb;\n\n  vec3 mat = hsl2rgb_5_14(r * 0.5 + 0.5, 0.1, 0.25) * pow(1.0 - grimeCol1, vec3(2.0));\n\n  float dif  = max(0.0, dot(ldir, normal)) * 0.5 + 0.1;\n  float spec = cookTorranceSpecular_4_10(ldir, vdir, normal, 1.9, 0.0);\n  vec3 color = mix(0.7, 1.0, length(ridges * 0.5 + 0.5)) * dif * mat + spec * 2.0;\n\n  vec3 spos = vpos + vec3(0, 1, 0) * snoise_2_8(vec2(vpos.x, 0.5)) * 0.5;\n  float lut = (sfin((spos * 0.03+sin(t/pi)*twpi)*pi)*dif).r;\n\n  color = mix(color, texture2D(grad, vec2(lut)).rgb+spec, 0.6);\n  color *= mix(vec3(0.8), vec3(1.1), grimeCol2);\n  color = mix(color, vec3(1.0), fogFactorExp2_7_15(length(eye - vpos), 0.0015));\n\n  // float amp = analyse(wave, fract(length(vpos)));\n\n  gl_FragColor = vec4(color, 1);\n}\n"
 )
 
 const post = Shader(gl
@@ -139,7 +140,19 @@ img2.src = 'grime.jpg'
 lut.src = 'lut.png'
 
 canvas.style.cursor = 'pointer'
-window.addEventListener('click', function() {
+window.addEventListener('click', function(e) {
+  const mute = findup(e.target, function(el) {
+    return el.classList && el.classList.contains('mute')
+  })
+
+  if (mute) return toggleMute()
+
+  const back = findup(e.target, function(el) {
+    return el.classList && el.classList.contains('back')
+  })
+
+  if (movieSel === 5 && !back) return
+
   movieSel = (movieSel + 1) % movies.length
 
   if (movieSel === 5) {
@@ -148,6 +161,12 @@ window.addEventListener('click', function() {
     document.body.classList.remove('has-cap')
   }
 }, false)
+
+function toggleMute() {
+  audio.volume = audio.volume ? 0 : 1
+  document.querySelector('.mute')
+    .classList.toggle('enabled')
+}
 
 function render () {
   if (!textureLut) return
@@ -248,7 +267,7 @@ function scale(mesh) {
 
 })()
 
-},{"./cap.json":1,"a-big-triangle":20,"canvas-fit":22,"class-list":24,"eye-vector":26,"gl-audio-analyser":28,"gl-context":33,"gl-fbo":35,"gl-geometry":36,"gl-mat4":68,"gl-shader":83,"gl-texture2d":103,"icosphere":104,"lookat-camera":107,"normals":109,"soundcloud-badge":110,"touch-position":118}],3:[function(require,module,exports){
+},{"./cap.json":1,"a-big-triangle":20,"canvas-fit":22,"class-list":24,"eye-vector":26,"findup-element":28,"gl-audio-analyser":29,"gl-context":34,"gl-fbo":36,"gl-geometry":37,"gl-mat4":69,"gl-shader":84,"gl-texture2d":104,"icosphere":105,"lookat-camera":108,"normals":110,"soundcloud-badge":111,"touch-position":119}],3:[function(require,module,exports){
 "use strict"
 
 var pool = require("typedarray-pool")
@@ -2313,7 +2332,7 @@ exports.clearCache = function clearCache() {
   }
 }
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"bit-twiddle":12,"buffer":120,"dup":13}],15:[function(require,module,exports){
+},{"bit-twiddle":12,"buffer":121,"dup":13}],15:[function(require,module,exports){
 "use strict"
 
 function doBind(gl, elements, attributes) {
@@ -3460,7 +3479,7 @@ function isTruthy(value) {
     return !!value
 }
 
-},{"indexof":106}],25:[function(require,module,exports){
+},{"indexof":107}],25:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6852,6 +6871,36 @@ if(typeof(exports) !== 'undefined') {
 })();
 
 },{}],28:[function(require,module,exports){
+module.exports = findup
+
+function findup(child, check) {
+  if (typeof check === 'string')   check = byName(check)
+  if (typeof check !== 'function') check = byExact(check)
+
+  while (
+    child &&
+   !check(child)
+  ) child = child.parentNode
+
+
+  return child || null
+}
+
+function byName(name) {
+  name = String(name).toUpperCase()
+
+  return function(element) {
+    return name === element.nodeName
+  }
+}
+
+function byExact(el) {
+  return function(element) {
+    return el === element
+  }
+}
+
+},{}],29:[function(require,module,exports){
 var Analyser = require('web-audio-analyser')
 var Texture  = require('gl-texture2d')
 var ndarray  = require('ndarray')
@@ -6909,13 +6958,13 @@ GLAudioAnalyser.prototype.bindFrequencies = function(index, channel) {
   return this.freqTex.bind(index)
 }
 
-},{"gl-texture2d":103,"ndarray":29,"web-audio-analyser":32}],29:[function(require,module,exports){
+},{"gl-texture2d":104,"ndarray":30,"web-audio-analyser":33}],30:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"dup":9,"iota-array":30,"is-buffer":31}],30:[function(require,module,exports){
+},{"dup":9,"iota-array":31,"is-buffer":32}],31:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],31:[function(require,module,exports){
+},{"dup":10}],32:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"dup":11}],32:[function(require,module,exports){
+},{"dup":11}],33:[function(require,module,exports){
 var AudioContext = window.AudioContext || window.webkitAudioContext
 
 module.exports = WebAudioAnalyser
@@ -6995,7 +7044,7 @@ WebAudioAnalyser.prototype.frequencies = function(output, channel) {
   return output
 }
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var raf = require('raf-component')
 
 module.exports = createContext
@@ -7028,7 +7077,7 @@ function createContext(canvas, opts, render) {
   }
 }
 
-},{"raf-component":34}],34:[function(require,module,exports){
+},{"raf-component":35}],35:[function(require,module,exports){
 /**
  * Expose `requestAnimationFrame()`.
  */
@@ -7068,7 +7117,7 @@ exports.cancel = function(id){
   cancel.call(window, id);
 };
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 'use strict'
 
 var createTexture = require('gl-texture2d')
@@ -7535,7 +7584,7 @@ function createFBO(gl, width, height, options) {
     WEBGL_draw_buffers)
 }
 
-},{"gl-texture2d":103}],36:[function(require,module,exports){
+},{"gl-texture2d":104}],37:[function(require,module,exports){
 var normalize = require('./normalize')
 var createVAO = require('gl-vao')
 
@@ -7677,7 +7726,7 @@ GLGeometry.prototype.update = function update() {
   )
 }
 
-},{"./normalize":58,"gl-vao":55}],37:[function(require,module,exports){
+},{"./normalize":59,"gl-vao":56}],38:[function(require,module,exports){
 var dtype = require('dtype')
 
 module.exports = pack
@@ -7705,7 +7754,7 @@ function pack(arr, type) {
   return out
 }
 
-},{"dtype":38}],38:[function(require,module,exports){
+},{"dtype":39}],39:[function(require,module,exports){
 (function (Buffer){
 module.exports = function(dtype) {
   switch (dtype) {
@@ -7740,7 +7789,7 @@ module.exports = function(dtype) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":120}],39:[function(require,module,exports){
+},{"buffer":121}],40:[function(require,module,exports){
 module.exports = function(dtype) {
   switch (dtype) {
     case 'int8':
@@ -7763,39 +7812,39 @@ module.exports = function(dtype) {
       return Array
   }
 }
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
-},{"dup":3,"ndarray":46,"ndarray-ops":41,"typedarray-pool":51}],41:[function(require,module,exports){
+},{"dup":3,"ndarray":47,"ndarray-ops":42,"typedarray-pool":52}],42:[function(require,module,exports){
 arguments[4][4][0].apply(exports,arguments)
-},{"cwise-compiler":42,"dup":4}],42:[function(require,module,exports){
+},{"cwise-compiler":43,"dup":4}],43:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"./lib/thunk.js":44,"dup":5}],43:[function(require,module,exports){
+},{"./lib/thunk.js":45,"dup":5}],44:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"dup":6,"uniq":45}],44:[function(require,module,exports){
+},{"dup":6,"uniq":46}],45:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
-},{"./compile.js":43,"dup":7}],45:[function(require,module,exports){
+},{"./compile.js":44,"dup":7}],46:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],46:[function(require,module,exports){
+},{"dup":8}],47:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"dup":9,"iota-array":47,"is-buffer":48}],47:[function(require,module,exports){
+},{"dup":9,"iota-array":48,"is-buffer":49}],48:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],48:[function(require,module,exports){
+},{"dup":10}],49:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"dup":11}],49:[function(require,module,exports){
+},{"dup":11}],50:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"dup":12}],50:[function(require,module,exports){
+},{"dup":12}],51:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],51:[function(require,module,exports){
+},{"dup":13}],52:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"bit-twiddle":49,"buffer":120,"dup":14}],52:[function(require,module,exports){
+},{"bit-twiddle":50,"buffer":121,"dup":14}],53:[function(require,module,exports){
 arguments[4][15][0].apply(exports,arguments)
-},{"dup":15}],53:[function(require,module,exports){
+},{"dup":15}],54:[function(require,module,exports){
 arguments[4][16][0].apply(exports,arguments)
-},{"./do-bind.js":52,"dup":16}],54:[function(require,module,exports){
+},{"./do-bind.js":53,"dup":16}],55:[function(require,module,exports){
 arguments[4][17][0].apply(exports,arguments)
-},{"./do-bind.js":52,"dup":17}],55:[function(require,module,exports){
+},{"./do-bind.js":53,"dup":17}],56:[function(require,module,exports){
 arguments[4][18][0].apply(exports,arguments)
-},{"./lib/vao-emulated.js":53,"./lib/vao-native.js":54,"dup":18}],56:[function(require,module,exports){
+},{"./lib/vao-emulated.js":54,"./lib/vao-native.js":55,"dup":18}],57:[function(require,module,exports){
 module.exports      = isTypedArray
 isTypedArray.strict = isStrictTypedArray
 isTypedArray.loose  = isLooseTypedArray
@@ -7836,7 +7885,7 @@ function isLooseTypedArray(arr) {
   return names[toString.call(arr)]
 }
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 module.exports = function(arr) {
   if (!arr) return false
   if (!arr.dtype) return false
@@ -7844,7 +7893,7 @@ module.exports = function(arr) {
   return re.test(String(arr.constructor))
 }
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 var pack         = require('array-pack-2d')
 var ista         = require('is-typedarray')
 var createBuffer = require('gl-buffer')
@@ -7925,7 +7974,7 @@ function convert(a, b) {
   return b
 }
 
-},{"array-pack-2d":37,"dtype":39,"gl-buffer":40,"is-typedarray":56,"isndarray":57}],59:[function(require,module,exports){
+},{"array-pack-2d":38,"dtype":40,"gl-buffer":41,"is-typedarray":57,"isndarray":58}],60:[function(require,module,exports){
 module.exports = adjoint;
 
 /**
@@ -7959,7 +8008,7 @@ function adjoint(out, a) {
     out[15] =  (a00 * (a11 * a22 - a12 * a21) - a10 * (a01 * a22 - a02 * a21) + a20 * (a01 * a12 - a02 * a11));
     return out;
 };
-},{}],60:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = clone;
 
 /**
@@ -7988,7 +8037,7 @@ function clone(a) {
     out[15] = a[15];
     return out;
 };
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 module.exports = copy;
 
 /**
@@ -8017,7 +8066,7 @@ function copy(out, a) {
     out[15] = a[15];
     return out;
 };
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 module.exports = create;
 
 /**
@@ -8045,7 +8094,7 @@ function create() {
     out[15] = 1;
     return out;
 };
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 module.exports = determinant;
 
 /**
@@ -8076,7 +8125,7 @@ function determinant(a) {
     // Calculate the determinant
     return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 };
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 module.exports = fromQuat;
 
 /**
@@ -8124,7 +8173,7 @@ function fromQuat(out, q) {
 
     return out;
 };
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 module.exports = fromRotationTranslation;
 
 /**
@@ -8178,7 +8227,7 @@ function fromRotationTranslation(out, q, v) {
     
     return out;
 };
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 module.exports = frustum;
 
 /**
@@ -8215,7 +8264,7 @@ function frustum(out, left, right, bottom, top, near, far) {
     out[15] = 0;
     return out;
 };
-},{}],67:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 module.exports = identity;
 
 /**
@@ -8243,7 +8292,7 @@ function identity(out) {
     out[15] = 1;
     return out;
 };
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 module.exports = {
   create: require('./create')
   , clone: require('./clone')
@@ -8269,7 +8318,7 @@ module.exports = {
   , lookAt: require('./lookAt')
   , str: require('./str')
 }
-},{"./adjoint":59,"./clone":60,"./copy":61,"./create":62,"./determinant":63,"./fromQuat":64,"./fromRotationTranslation":65,"./frustum":66,"./identity":67,"./invert":69,"./lookAt":70,"./multiply":71,"./ortho":72,"./perspective":73,"./perspectiveFromFieldOfView":74,"./rotate":75,"./rotateX":76,"./rotateY":77,"./rotateZ":78,"./scale":79,"./str":80,"./translate":81,"./transpose":82}],69:[function(require,module,exports){
+},{"./adjoint":60,"./clone":61,"./copy":62,"./create":63,"./determinant":64,"./fromQuat":65,"./fromRotationTranslation":66,"./frustum":67,"./identity":68,"./invert":70,"./lookAt":71,"./multiply":72,"./ortho":73,"./perspective":74,"./perspectiveFromFieldOfView":75,"./rotate":76,"./rotateX":77,"./rotateY":78,"./rotateZ":79,"./scale":80,"./str":81,"./translate":82,"./transpose":83}],70:[function(require,module,exports){
 module.exports = invert;
 
 /**
@@ -8325,7 +8374,7 @@ function invert(out, a) {
 
     return out;
 };
-},{}],70:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 var identity = require('./identity');
 
 module.exports = lookAt;
@@ -8416,7 +8465,7 @@ function lookAt(out, eye, center, up) {
 
     return out;
 };
-},{"./identity":67}],71:[function(require,module,exports){
+},{"./identity":68}],72:[function(require,module,exports){
 module.exports = multiply;
 
 /**
@@ -8459,7 +8508,7 @@ function multiply(out, a, b) {
     out[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
     return out;
 };
-},{}],72:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 module.exports = ortho;
 
 /**
@@ -8496,7 +8545,7 @@ function ortho(out, left, right, bottom, top, near, far) {
     out[15] = 1;
     return out;
 };
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 module.exports = perspective;
 
 /**
@@ -8530,7 +8579,7 @@ function perspective(out, fovy, aspect, near, far) {
     out[15] = 0;
     return out;
 };
-},{}],74:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 module.exports = perspectiveFromFieldOfView;
 
 /**
@@ -8572,7 +8621,7 @@ function perspectiveFromFieldOfView(out, fov, near, far) {
 }
 
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 module.exports = rotate;
 
 /**
@@ -8637,7 +8686,7 @@ function rotate(out, a, rad, axis) {
     }
     return out;
 };
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 module.exports = rotateX;
 
 /**
@@ -8682,7 +8731,7 @@ function rotateX(out, a, rad) {
     out[11] = a23 * c - a13 * s;
     return out;
 };
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 module.exports = rotateY;
 
 /**
@@ -8727,7 +8776,7 @@ function rotateY(out, a, rad) {
     out[11] = a03 * s + a23 * c;
     return out;
 };
-},{}],78:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 module.exports = rotateZ;
 
 /**
@@ -8772,7 +8821,7 @@ function rotateZ(out, a, rad) {
     out[7] = a13 * c - a03 * s;
     return out;
 };
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 module.exports = scale;
 
 /**
@@ -8804,7 +8853,7 @@ function scale(out, a, v) {
     out[15] = a[15];
     return out;
 };
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 module.exports = str;
 
 /**
@@ -8819,7 +8868,7 @@ function str(a) {
                     a[8] + ', ' + a[9] + ', ' + a[10] + ', ' + a[11] + ', ' + 
                     a[12] + ', ' + a[13] + ', ' + a[14] + ', ' + a[15] + ')';
 };
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 module.exports = translate;
 
 /**
@@ -8858,7 +8907,7 @@ function translate(out, a, v) {
 
     return out;
 };
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 module.exports = transpose;
 
 /**
@@ -8908,7 +8957,7 @@ function transpose(out, a) {
     
     return out;
 };
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 'use strict'
 
 var createUniformWrapper   = require('./lib/create-uniforms')
@@ -9143,7 +9192,7 @@ function createShader(
 }
 
 module.exports = createShader
-},{"./lib/create-attributes":84,"./lib/create-uniforms":85,"./lib/reflect":86,"./lib/runtime-reflect":87,"./lib/shader-cache":88}],84:[function(require,module,exports){
+},{"./lib/create-attributes":85,"./lib/create-uniforms":86,"./lib/reflect":87,"./lib/runtime-reflect":88,"./lib/shader-cache":89}],85:[function(require,module,exports){
 'use strict'
 
 module.exports = createAttributeWrapper
@@ -9405,7 +9454,7 @@ function createAttributeWrapper(
   }
   return obj
 }
-},{}],85:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 'use strict'
 
 var coallesceUniforms = require('./reflect')
@@ -9597,7 +9646,7 @@ function createUniformWrapper(gl, wrapper, uniforms, locations) {
   }
 }
 
-},{"./reflect":86}],86:[function(require,module,exports){
+},{"./reflect":87}],87:[function(require,module,exports){
 'use strict'
 
 module.exports = makeReflectTypes
@@ -9655,7 +9704,7 @@ function makeReflectTypes(uniforms, useIndex) {
   }
   return obj
 }
-},{}],87:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 'use strict'
 
 exports.uniforms    = runtimeUniforms
@@ -9724,7 +9773,7 @@ function runtimeAttributes(gl, program) {
   }
   return result
 }
-},{}],88:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 'use strict'
 
 exports.shader   = getShaderReference
@@ -9855,7 +9904,7 @@ function createProgram(gl, vref, fref, attribs, locations) {
   return getCache(gl).getProgram(vref, fref, attribs, locations)
 }
 
-},{"weakmap-shim":91}],89:[function(require,module,exports){
+},{"weakmap-shim":92}],90:[function(require,module,exports){
 var hiddenStore = require('./hidden-store.js');
 
 module.exports = createStore;
@@ -9876,7 +9925,7 @@ function createStore() {
     };
 }
 
-},{"./hidden-store.js":90}],90:[function(require,module,exports){
+},{"./hidden-store.js":91}],91:[function(require,module,exports){
 module.exports = hiddenStore;
 
 function hiddenStore(obj, key) {
@@ -9894,7 +9943,7 @@ function hiddenStore(obj, key) {
     return store;
 }
 
-},{}],91:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 // Original - @Gozola. 
 // https://gist.github.com/Gozala/1269991
 // This is a reimplemented version (with a few bug fixes).
@@ -9924,29 +9973,29 @@ function weakMap() {
     }
 }
 
-},{"./create-store.js":89}],92:[function(require,module,exports){
+},{"./create-store.js":90}],93:[function(require,module,exports){
 arguments[4][4][0].apply(exports,arguments)
-},{"cwise-compiler":93,"dup":4}],93:[function(require,module,exports){
+},{"cwise-compiler":94,"dup":4}],94:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"./lib/thunk.js":95,"dup":5}],94:[function(require,module,exports){
+},{"./lib/thunk.js":96,"dup":5}],95:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"dup":6,"uniq":96}],95:[function(require,module,exports){
+},{"dup":6,"uniq":97}],96:[function(require,module,exports){
 arguments[4][7][0].apply(exports,arguments)
-},{"./compile.js":94,"dup":7}],96:[function(require,module,exports){
+},{"./compile.js":95,"dup":7}],97:[function(require,module,exports){
 arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],97:[function(require,module,exports){
+},{"dup":8}],98:[function(require,module,exports){
 arguments[4][9][0].apply(exports,arguments)
-},{"dup":9,"iota-array":98,"is-buffer":99}],98:[function(require,module,exports){
+},{"dup":9,"iota-array":99,"is-buffer":100}],99:[function(require,module,exports){
 arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],99:[function(require,module,exports){
+},{"dup":10}],100:[function(require,module,exports){
 arguments[4][11][0].apply(exports,arguments)
-},{"dup":11}],100:[function(require,module,exports){
+},{"dup":11}],101:[function(require,module,exports){
 arguments[4][12][0].apply(exports,arguments)
-},{"dup":12}],101:[function(require,module,exports){
+},{"dup":12}],102:[function(require,module,exports){
 arguments[4][13][0].apply(exports,arguments)
-},{"dup":13}],102:[function(require,module,exports){
+},{"dup":13}],103:[function(require,module,exports){
 arguments[4][14][0].apply(exports,arguments)
-},{"bit-twiddle":100,"buffer":120,"dup":14}],103:[function(require,module,exports){
+},{"bit-twiddle":101,"buffer":121,"dup":14}],104:[function(require,module,exports){
 'use strict'
 
 var ndarray = require('ndarray')
@@ -10505,7 +10554,7 @@ function createTexture2D(gl) {
   throw new Error('gl-texture2d: Invalid arguments for texture2d constructor')
 }
 
-},{"ndarray":97,"ndarray-ops":92,"typedarray-pool":102}],104:[function(require,module,exports){
+},{"ndarray":98,"ndarray-ops":93,"typedarray-pool":103}],105:[function(require,module,exports){
 var normalize = require('vectors/normalize-nd')
 
 module.exports = icosphere
@@ -10652,7 +10701,7 @@ function subdivide(complex) {
   }
 }
 
-},{"vectors/normalize-nd":105}],105:[function(require,module,exports){
+},{"vectors/normalize-nd":106}],106:[function(require,module,exports){
 module.exports = normalize
 
 function normalize(vec) {
@@ -10674,7 +10723,7 @@ function normalize(vec) {
   return vec
 }
 
-},{}],106:[function(require,module,exports){
+},{}],107:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -10685,7 +10734,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],107:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 var lookAt = require('gl-mat4/lookAt')
 
 module.exports = Camera
@@ -10709,7 +10758,7 @@ Camera.prototype.view = function(view) {
   return view
 }
 
-},{"gl-mat4/lookAt":70}],108:[function(require,module,exports){
+},{"gl-mat4/lookAt":71}],109:[function(require,module,exports){
 
 module.exports = function offset(ev, options) {
     ev = ev || window.event;
@@ -10740,7 +10789,7 @@ function getOffset(element) {
     }
     return tmpRect
 }
-},{}],109:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 var EPSILON = 1e-6;
 
 //Estimate the vertex normals of a mesh
@@ -10861,7 +10910,7 @@ exports.faceNormals = function(faces, positions) {
 
 
 
-},{}],110:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 var resolve = require('soundcloud-resolve')
 var fonts = require('google-fonts')
 var minstache = require('minstache')
@@ -10926,7 +10975,7 @@ function badge(options, callback) {
   return div
 }
 
-},{"fs":119,"google-fonts":111,"insert-css":112,"minstache":113,"soundcloud-resolve":114}],111:[function(require,module,exports){
+},{"fs":120,"google-fonts":112,"insert-css":113,"minstache":114,"soundcloud-resolve":115}],112:[function(require,module,exports){
 module.exports = asString
 module.exports.add = append
 
@@ -10966,7 +11015,7 @@ function makeArray(arr) {
   return Array.isArray(arr) ? arr : [arr]
 }
 
-},{}],112:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 var inserted = [];
 
 module.exports = function (css) {
@@ -10985,7 +11034,7 @@ module.exports = function (css) {
     }
 };
 
-},{}],113:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 
 /**
  * Expose `render()`.`
@@ -11136,7 +11185,7 @@ function escape(html) {
     .replace(/>/g, '&gt;');
 }
 
-},{}],114:[function(require,module,exports){
+},{}],115:[function(require,module,exports){
 var qs  = require('querystring')
 var xhr = require('xhr')
 
@@ -11165,7 +11214,7 @@ function resolve(id, goal, callback) {
   })
 }
 
-},{"querystring":126,"xhr":115}],115:[function(require,module,exports){
+},{"querystring":127,"xhr":116}],116:[function(require,module,exports){
 var window = require("global/window")
 var once = require("once")
 
@@ -11271,7 +11320,7 @@ function createXHR(options, callback) {
 
 function noop() {}
 
-},{"global/window":116,"once":117}],116:[function(require,module,exports){
+},{"global/window":117,"once":118}],117:[function(require,module,exports){
 (function (global){
 if (typeof window !== "undefined") {
     module.exports = window
@@ -11282,7 +11331,7 @@ if (typeof window !== "undefined") {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],117:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 module.exports = once
 
 once.proto = once(function () {
@@ -11303,7 +11352,7 @@ function once (fn) {
   }
 }
 
-},{}],118:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
 var addEvent = require('add-event-listener')
 var offset = require('mouse-event-offset')
 var Emitter = require('events/')
@@ -11347,9 +11396,9 @@ module.exports = function(opt) {
 module.exports.emitter = function(opt) {
     return attach(opt)
 }
-},{"add-event-listener":21,"events/":25,"mouse-event-offset":108}],119:[function(require,module,exports){
+},{"add-event-listener":21,"events/":25,"mouse-event-offset":109}],120:[function(require,module,exports){
 
-},{}],120:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -12788,7 +12837,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-},{"base64-js":121,"ieee754":122,"is-array":123}],121:[function(require,module,exports){
+},{"base64-js":122,"ieee754":123,"is-array":124}],122:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -12914,7 +12963,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],122:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -13000,7 +13049,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],123:[function(require,module,exports){
+},{}],124:[function(require,module,exports){
 
 /**
  * isArray
@@ -13035,7 +13084,7 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}],124:[function(require,module,exports){
+},{}],125:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -13121,7 +13170,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],125:[function(require,module,exports){
+},{}],126:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -13208,10 +13257,10 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],126:[function(require,module,exports){
+},{}],127:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":124,"./encode":125}]},{},[2]);
+},{"./decode":125,"./encode":126}]},{},[2]);

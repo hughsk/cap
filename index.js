@@ -6,6 +6,7 @@ const cursor    = require('touch-position')(window)
 const Analyser  = require('gl-audio-analyser')
 const badge     = require('soundcloud-badge')
 const camera    = require('lookat-camera')()
+const findup    = require('findup-element')
 const Touch     = require('touch-position')
 const triangle  = require('a-big-triangle')
 const Texture   = require('gl-texture2d')
@@ -136,7 +137,19 @@ img2.src = 'grime.jpg'
 lut.src = 'lut.png'
 
 canvas.style.cursor = 'pointer'
-window.addEventListener('click', function() {
+window.addEventListener('click', function(e) {
+  const mute = findup(e.target, function(el) {
+    return el.classList && el.classList.contains('mute')
+  })
+
+  if (mute) return toggleMute()
+
+  const back = findup(e.target, function(el) {
+    return el.classList && el.classList.contains('back')
+  })
+
+  if (movieSel === 5 && !back) return
+
   movieSel = (movieSel + 1) % movies.length
 
   if (movieSel === 5) {
@@ -145,6 +158,12 @@ window.addEventListener('click', function() {
     document.body.classList.remove('has-cap')
   }
 }, false)
+
+function toggleMute() {
+  audio.volume = audio.volume ? 0 : 1
+  document.querySelector('.mute')
+    .classList.toggle('enabled')
+}
 
 function render () {
   if (!textureLut) return
