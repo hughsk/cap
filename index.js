@@ -75,20 +75,20 @@ var ttfp   = document.querySelector('.ttfp')
 var movieSel = 6
 var movieTex = Texture(gl, [2, 2])
 var movies   = [
-  'GIF1.webm',
-  'GIF2.webm',
-  'GIF3.webm',
-  'GIF4.webm',
-  'GIF5.webm',
-  'cap.webm',
-  'cap.webm'
+  'GIF1.mp4',
+  'GIF2.mp4',
+  'GIF3.mp4',
+  'GIF4.mp4',
+  'GIF5.mp4',
+  'cap.mp4',
+  'cap.mp4'
 ].map(function(src) {
   var video  = document.createElement('video')
-  video.src  = src
   video.loop = true
   video.addEventListener('canplay', function() {
     video.play()
   }, false)
+  video.src  = src
 
   return video
 })
