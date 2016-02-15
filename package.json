@@ -2,8 +2,11 @@
   "name": "cap",
   "version": "1.0.0",
   "scripts": {
-    "rebuild": "browserify index.js | uglifyjs -cm > bundle.js",
-    "start": "budo index.js:bundle.js"
+    "rebuild:main": "browserify index.js | uglifyjs -cm > bundle.js",
+    "rebuild:back": "browserify bg.js | uglifyjs -cm > bg-bundle.js",
+    "start": "npm run start:main",
+    "start:main": "budo index.js:bundle.js",
+    "start:back": "budo bg.js:bg-bundle.js --index bg.html"
   },
   "browserify": {
     "transform": [
@@ -12,6 +15,7 @@
   },
   "dependencies": {
     "a-big-triangle": "^1.0.2",
+    "async-image-loader": "^2.0.2",
     "bunny": "^1.0.1",
     "canvas-fit": "^1.4.0",
     "canvas-orbit-camera": "^1.0.2",
@@ -30,6 +34,7 @@
     "glsl-hsv2rgb": "^1.0.0",
     "glsl-noise": "0.0.0",
     "glsl-specular-cook-torrance": "^2.0.1",
+    "glsl-square-frame": "^1.0.1",
     "glslify": "^2.1.2",
     "icosphere": "^1.0.0",
     "lookat-camera": "^1.0.0",
